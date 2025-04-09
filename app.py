@@ -5,7 +5,7 @@ from typing import List
 from agents import deps
 from database import DatabaseHandler
 from fastapi.middleware.cors import CORSMiddleware
-from main import main
+from main import main, chat
 import shutil
 from uuid import uuid4
 import os
@@ -74,6 +74,21 @@ async def create_log(file: UploadFile = File(...)):
             "message" : "Log uploaded successfully"
         })
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@app.post("/chat")
+async def report_chat(user_prompt : str, uuid : uuid4):
+    try:
+        response = chat(user_prompt=user_prompt, uuid=uuid)
+        bot_response = response.data
+        
+        return JSONResponse(content={
+            "status": "success",
+            "content": bot_response
+        })
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

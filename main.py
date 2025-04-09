@@ -42,9 +42,10 @@ async def main(file_path: str) -> None:
     except Exception as e:
         print(traceback.format_exc())
 
+messages : list[ModelMessage] = []
+
 async def chat(user_prompt: str, uuid : uuid4) -> str:
 
-    messages : list[ModelMessage] = []
     system_prompt : SystemPromptPart = db.get_report(uuid=uuid)
     messages.append(system_prompt)
     
