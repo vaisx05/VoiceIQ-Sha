@@ -1,7 +1,9 @@
 from database import DatabaseHandler
 from transcription import TranscriptionService
-from agents import deps, call_log_agent, report_agent, database_agent
+from agents import deps, call_log_agent, report_agent, database_agent, chat_agent
+from pydantic_ai.messages import ModelMessage, UserPromptPart, TextPart, SystemPromptPart, ModelRequest, ModelResponse
 import traceback
+from uuid import uuid4
 from settings import Settings
 
 settings = Settings()
@@ -39,3 +41,13 @@ async def main(file_path: str) -> None:
 
     except Exception as e:
         print(traceback.format_exc())
+
+async def chat(user_prompt: str, uuid : uuid4) -> str:
+
+    messages : list[ModelMessage] = []
+    system_prompt : SystemPromptPart = db.get_report(uuid=uuid)
+    messages.append(system_prompt)
+    
+    response = await chat_agent.run(user_prompt=user_prompt, message_history=messages)
+    return response.data
+

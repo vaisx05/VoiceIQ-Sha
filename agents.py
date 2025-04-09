@@ -53,20 +53,11 @@ class Form(BaseModel):
 
 @dataclass
 class Deps:
-    supabase_url: str
-    supabase_key: str
-    supabase_client: Client
-
-    @classmethod
-    async def create(cls) -> "Deps":
-        client = await create_async_client(settings.supabase_url, settings.supabase_key)
-        return cls(
-            supabase_url = settings.supabase_url,
-            supabase_key = settings.supabase_key,
-            supabase_client = client
-        )
-        
-deps = asyncio.run(Deps.create())
+    supabase_url: str = settings.supabase_url
+    supabase_key: str = settings.supabase_key
+    supabase_client: Client = create_async_client(supabase_url, supabase_key)
+    
+deps = Deps()
 
 with open("prompts/call_log_agent_prompt.txt", "r") as file:
     call_log_agent_prompt = file.read()
@@ -99,5 +90,8 @@ database_agent = Agent(
     result_type=Form
 )
 
-
-
+chat_agent = Agent(
+    model=groq_model,
+    model_settings=groq_settings,
+    retries=3
+)

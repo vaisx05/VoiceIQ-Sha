@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import List
 from agents import deps
 from database import DatabaseHandler
+from fastapi.middleware.cors import CORSMiddleware
 from main import main
 import shutil
 from uuid import uuid4
@@ -12,6 +13,19 @@ import os
 db = DatabaseHandler(deps)
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:3000",  # your frontend
+    "http://127.0.0.1:3000",  # optional, in case you access it via 127.0.0.1
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # must match exactly
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Pydantic model for /logs/columns POST request
 class ColumnRequest(BaseModel):
