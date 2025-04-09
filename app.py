@@ -2,15 +2,12 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List
-from agents import Deps
+from agents import deps
 from database import DatabaseHandler
 from main import main
 import shutil
 from uuid import uuid4
 import os
-
-
-deps = Deps()
 
 db = DatabaseHandler(deps)
 
@@ -51,9 +48,12 @@ async def create_log(file: UploadFile = File(...)):
         with open(temp_filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
+        print("✅ TempFile Created.")
+
         await main(file_path=temp_filename)
 
-        os.remove(temp_filename)
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)
 
         return JSONResponse(content={
             "status": "success",
@@ -62,3 +62,7 @@ async def create_log(file: UploadFile = File(...)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

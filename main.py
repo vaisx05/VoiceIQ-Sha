@@ -1,11 +1,10 @@
 from database import DatabaseHandler
 from transcription import TranscriptionService
-from agents import Deps, call_log_agent, report_agent, database_agent
+from agents import deps, call_log_agent, report_agent, database_agent
+import traceback
 from settings import Settings
 
 settings = Settings()
-
-deps = Deps()
 
 db = DatabaseHandler(deps)
 
@@ -13,12 +12,16 @@ transcription_service = TranscriptionService()
 
 async def main(file_path: str) -> None:
     try:
-        transcript = transcription_service.transcribe_local(file_path=file_path)
-        sanitized_transcript = transcription_service.filter(transcript=transcript)
-
+        transcript = await transcription_service.transcribe_groq(file_path=file_path)
+        sanitized_transcript = await transcription_service.filter(transcript=transcript)
+        print("✅ Transcription successful.")
+        
         call_log_agent_response = await call_log_agent.run(user_prompt=sanitized_transcript)
         report_agent_response = await report_agent.run(user_prompt=sanitized_transcript)
         database_agent_response = await database_agent.run(user_prompt=sanitized_transcript)
+        if not database_agent_response.data:
+            raise ValueError("Database Agent failed to extract structured data")
+        print("✅ Agents executed successfully.")
         
         payload : dict = {
             "responder_name": database_agent_response.data.responder_name,
@@ -29,16 +32,10 @@ async def main(file_path: str) -> None:
             "report_generated": report_agent_response.data,
             "call_log": call_log_agent_response.data
         }
-
+        print("✅ Payload created successfully.")
+        
         await db.create_call_log(data=payload)
         print("✅ Log inserted successfully.")
 
     except Exception as e:
-        print(f"❌ Error in processing: {e}")
-
-
-
-
-
-
-
+        print(traceback.format_exc())

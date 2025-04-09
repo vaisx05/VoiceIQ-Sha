@@ -2,14 +2,11 @@ import os
 import mimetypes
 import requests
 import re
-from groq import Groq
-from settings import Settings
-
-settings = Settings()
+from agents import async_groq_client
 
 class TranscriptionService:
     def __init__(self):
-        self.groq_client = Groq(api_key=settings.groq_api_key)
+        self.groq_client = async_groq_client
         self.remote_url = "https://guest1.nullvijayawada.org/transcribe"
 
     def _load_audio_file(self, file_path: str) -> tuple[str, bytes, str]:
@@ -25,7 +22,7 @@ class TranscriptionService:
 
         return os.path.basename(file_path), file_bytes, mime_type
 
-    def transcribe_local(self, file_path: str) -> str:
+    async def transcribe_local(self, file_path: str) -> str:
         """Uses external transcription API via HTTP POST."""
         filename, file_bytes, mime_type = self._load_audio_file(file_path)
         files = {'file': (filename, file_bytes, mime_type)}
@@ -36,12 +33,12 @@ class TranscriptionService:
         else:
             raise RuntimeError(f"Transcription failed: {response.status_code} - {response.text}")
 
-    def transcribe_groq(self, file_path: str, prompt: str = "Specify context or spelling") -> str:
+    async def transcribe_groq(self, file_path: str, prompt: str = "Specify context or spelling") -> str:
         """Uses Groq's Whisper API to transcribe audio."""
         _, file_bytes, _ = self._load_audio_file(file_path)
 
         with open(file_path, "rb") as f:
-            transcription = self.groq_client.audio.transcriptions.create(
+            transcription = await self.groq_client.audio.transcriptions.create(
                 file=f,
                 model="whisper-large-v3-turbo",
                 prompt=prompt,
@@ -52,7 +49,7 @@ class TranscriptionService:
             )
         return transcription.text
 
-    def filter(self, transcript: str) -> str:
+    async def filter(self, transcript: str) -> str:
         """Sanitize PII like card numbers and SSNs."""
         # Mask card numbers
         card_pattern = r'\b((?:\d[ -]?){6})(?:(?:[Xx\- ]{1,6}|\d[ -]?){2,9})([ -]?\d{4})\b'

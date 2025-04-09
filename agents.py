@@ -3,11 +3,12 @@ from dataclasses import dataclass
 from pydantic_ai import Agent
 from pydantic_ai.models.groq import GroqModelSettings, GroqModel, GroqModelName
 from pydantic_ai.providers.groq import GroqProvider
+import groq
 from pydantic_ai.models.gemini import GeminiModelSettings, GeminiModel, GeminiModelName
 from pydantic_ai.providers.google_gla import GoogleGLAProvider
 from pydantic import BaseModel, Field
 from supabase import create_async_client, Client
-
+import asyncio
 from settings import Settings
 
 settings = Settings()
@@ -21,9 +22,11 @@ groq_settings = GroqModelSettings(
 
 groq_model_name : GroqModelName = "llama-3.3-70b-versatile"
 
+async_groq_client = groq.AsyncGroq(api_key=settings.groq_api_key)
+
 groq_model = GroqModel(
     model_name=groq_model_name,
-    provider=GroqProvider(api_key=settings.groq_api_key),
+    provider=GroqProvider(groq_client=async_groq_client),
 )
 
 # Gemini Model Definition
@@ -35,7 +38,10 @@ gemini_settings = GeminiModelSettings(
 
 gemini_model_name : GeminiModelName = "gemini-2.5-pro-exp-03-25"
 
-gemini_model = GeminiModel(provider=GoogleGLAProvider(api_key=settings.gemini_api_key))
+gemini_model = GeminiModel(
+    model_name=gemini_model_name,
+    provider=GoogleGLAProvider(api_key=settings.gemini_api_key)
+)
 
 
 class Form(BaseModel):
@@ -47,9 +53,20 @@ class Form(BaseModel):
 
 @dataclass
 class Deps:
-    supabase_url: str = settings.supabase_url
-    supabase_key: str = settings.supabase_key
-    supabase_client: Client = create_async_client(supabase_url, supabase_key)
+    supabase_url: str
+    supabase_key: str
+    supabase_client: Client
+
+    @classmethod
+    async def create(cls) -> "Deps":
+        client = await create_async_client(settings.supabase_url, settings.supabase_key)
+        return cls(
+            supabase_url = settings.supabase_url,
+            supabase_key = settings.supabase_key,
+            supabase_client = client
+        )
+        
+deps = asyncio.run(Deps.create())
 
 with open("prompts/call_log_agent_prompt.txt", "r") as file:
     call_log_agent_prompt = file.read()

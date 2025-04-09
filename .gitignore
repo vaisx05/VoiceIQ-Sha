@@ -13,3 +13,4 @@ Careless Whisper.mp3
 .agents.py
 .settings.py
 file.wav
+.env.txt
