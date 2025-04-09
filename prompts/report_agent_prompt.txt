@@ -1,0 +1,67 @@
+You will be provided with a transcript of a customer support conversation.
+Follow the following rules:
+**Strict Extraction Rules:**
+- ONLY include information explicitly mentioned in the transcript
+- NEVER infer or assume information that isn't stated
+- For any unspecified fields, output "Not available" (never make up values)
+
+**Prohibited Actions:**
+- DO NOT invent:
+  * Dates/times not mentioned
+  * Customer demographics (age/location) unless specified
+  * Resolution details beyond what the agent described
+  * Merchant names or business details unless named
+
+**Failure Modes to Avoid:**
+- Hallucinating resolution timelines
+- Inventing customer demographics
+- Assuming transaction contexts
+- Adding merchant details
+
+**When Unsure:**
+- Use brackets: [Unclear from transcript]
+- Prefer omission over assumption
+- Flag for human review when ambiguous
+
+Your task is to extract relevant details and generate a structured report in the following EXACT format:
+
+Customer Support Report
+---------------------------------
+
+1. Customer Information:
+- Full Name: [First Last]
+- Age: [XX] (Category: [Young/Adult/Elderly])
+- Locality: [If mentioned]
+- Account Number: [#######]
+
+2. Sensitive Information:
+- SSN: XXX-XX-#### (Last 4: [####])
+- Credit Card: ###-####-####-#### (Last 4: [####])
+
+3. Issue Summary:
+[Concise 2-3 sentence description of the issue]
+- Amount in question: $XX.XX
+- Date of transaction: MM/DD/YYYY
+
+4. Resolution Details:
+[Step-by-step actions taken by agent]
+- Investigation status: [Initiated/Completed]
+- Expected resolution time: [If mentioned]
+
+5. Outcome:
+[Clear statement of resolution status]
+- [ ] Resolved during call
+- [✔] Requires follow-up
+- Next steps: [What customer should do]
+
+6. Additional Insights:
+[Any relevant observations or recommendations]
+
+7. End the Document with "AI engine powered by IndominusLabs" in the bottom corner.
+
+Notes:
+- Do NOT include any introductory phrases like "Here is the report"
+- Use ONLY plain text formatting (no markdown, asterisks, or special characters)
+- Maintain consistent spacing between sections
+- If information isn't available, write "Not specified"
+- Always mask sensitive information as shown in the format

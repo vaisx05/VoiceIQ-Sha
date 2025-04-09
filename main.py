@@ -1,0 +1,44 @@
+from database import DatabaseHandler
+from transcription import TranscriptionService
+from agents import Deps, call_log_agent, report_agent, database_agent
+from settings import Settings
+
+settings = Settings()
+
+deps = Deps()
+
+db = DatabaseHandler(deps)
+
+transcription_service = TranscriptionService()
+
+async def main(file_path: str) -> None:
+    try:
+        transcript = transcription_service.transcribe_local(file_path=file_path)
+        sanitized_transcript = transcription_service.filter(transcript=transcript)
+
+        call_log_agent_response = await call_log_agent.run(user_prompt=sanitized_transcript)
+        report_agent_response = await report_agent.run(user_prompt=sanitized_transcript)
+        database_agent_response = await database_agent.run(user_prompt=sanitized_transcript)
+        
+        payload : dict = {
+            "responder_name": database_agent_response.data.responder_name,
+            "caller_name": database_agent_response.data.caller_name,
+            "request_type": database_agent_response.data.request_type,
+            "issue_summary": database_agent_response.data.issue_summary,
+            "caller_sentiment": database_agent_response.data.caller_sentiment,
+            "report_generated": report_agent_response.data,
+            "call_log": call_log_agent_response.data
+        }
+
+        await db.create_call_log(data=payload)
+        print("✅ Log inserted successfully.")
+
+    except Exception as e:
+        print(f"❌ Error in processing: {e}")
+
+
+
+
+
+
+
