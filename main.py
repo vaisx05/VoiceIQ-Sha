@@ -42,13 +42,14 @@ async def main(file_path: str) -> None:
     except Exception as e:
         print(traceback.format_exc())
 
-messages : list[ModelMessage] = []
+
 
 async def chat(user_prompt: str, uuid : uuid4) -> str:
-
-    system_prompt : SystemPromptPart = db.get_report(uuid=uuid)
-    messages.append(system_prompt)
+    messages : list[ModelMessage] = []
+    system_prompt : SystemPromptPart = await db.get_report(uuid=uuid)
+    messages.append(ModelRequest(parts=[SystemPromptPart(content=system_prompt)]))
     
     response = await chat_agent.run(user_prompt=user_prompt, message_history=messages)
-    return response.data
+    bot_response = response.data
+    return bot_response
 

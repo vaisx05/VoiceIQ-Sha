@@ -7,7 +7,7 @@ from agents import async_groq_client
 class TranscriptionService:
     def __init__(self):
         self.groq_client = async_groq_client
-        self.remote_url = "https://guest1.nullvijayawada.org/transcribe"
+        self.remote_url = "https://guest1.indominuslabs.in/transcribe"
 
     def _load_audio_file(self, file_path: str) -> tuple[str, bytes, str]:
         """Returns filename, file bytes, and MIME type."""

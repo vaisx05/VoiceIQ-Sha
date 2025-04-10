@@ -7,7 +7,7 @@ from database import DatabaseHandler
 from fastapi.middleware.cors import CORSMiddleware
 from main import main, chat
 import shutil
-from uuid import uuid4
+from uuid import  uuid4
 import os
 
 db = DatabaseHandler(deps)
@@ -26,6 +26,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class ChatRequest(BaseModel):
+    user_prompt: str
+    uuid: uuid4
 
 # Pydantic model for /logs/columns POST request
 class ColumnRequest(BaseModel):
@@ -79,14 +83,13 @@ async def create_log(file: UploadFile = File(...)):
     
 
 @app.post("/chat")
-async def report_chat(user_prompt : str, uuid : uuid4):
+async def report_chat(request: ChatRequest):
     try:
-        response = chat(user_prompt=user_prompt, uuid=uuid)
-        bot_response = response.data
+        response = await chat(user_prompt=request.user_prompt, uuid=request.uuid)
         
         return JSONResponse(content={
             "status": "success",
-            "content": bot_response
+            "content": response
         })
     
     except Exception as e:

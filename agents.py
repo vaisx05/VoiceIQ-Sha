@@ -7,7 +7,7 @@ import groq
 from pydantic_ai.models.gemini import GeminiModelSettings, GeminiModel, GeminiModelName
 from pydantic_ai.providers.google_gla import GoogleGLAProvider
 from pydantic import BaseModel, Field
-from supabase import create_async_client, Client
+from supabase import  Client, create_client
 import asyncio
 from settings import Settings
 
@@ -55,7 +55,7 @@ class Form(BaseModel):
 class Deps:
     supabase_url: str = settings.supabase_url
     supabase_key: str = settings.supabase_key
-    supabase_client: Client = create_async_client(supabase_url, supabase_key)
+    supabase_client: Client = create_client(supabase_url, supabase_key)
     
 deps = Deps()
 
