@@ -29,8 +29,6 @@
 
 ---
 
-## 📦 Installation
-
 ## 📦 Installation & Setup
 
 1. **Clone the repository**:

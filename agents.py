@@ -55,7 +55,7 @@ class Form(BaseModel):
 class Deps:
     supabase_url: str = settings.supabase_url
     supabase_key: str = settings.supabase_key
-    supabase_client: Client = create_client(supabase_url, supabase_key)
+    supabase_client: Client = create_client(supabase_key=supabase_key, supabase_url=supabase_url)
     
 deps = Deps()
 
