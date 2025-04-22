@@ -7,8 +7,8 @@ import groq
 from pydantic_ai.models.gemini import GeminiModelSettings, GeminiModel, GeminiModelName
 from pydantic_ai.providers.google_gla import GoogleGLAProvider
 from pydantic import BaseModel, Field
-from supabase import  Client, create_client
-import asyncio
+from supabase import Client, create_client
+
 from settings import Settings
 
 settings = Settings()
