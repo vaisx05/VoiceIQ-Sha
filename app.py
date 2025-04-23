@@ -27,17 +27,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class ChatRequest(BaseModel):
-    user_prompt: str
-    uuid: UUID
-
-class ReportRequest(BaseModel):
-    uuid: UUID
-
-# Pydantic model for /logs/columns POST request
 class ColumnRequest(BaseModel):
     columns: List[str] | str
     limit: int
+
+class ReportRequest(BaseModel):
+    uuid: UUID
+    
+class ChatRequest(BaseModel):
+    user_prompt: str
+    uuid: UUID
 
 @app.get("/logs/all/{limit}")
 async def get_all_logs(limit: int):
@@ -94,9 +93,9 @@ async def create_log(file: UploadFile = File(...)):
     
 
 @app.post("/chat")
-async def report_chat(request: ChatRequest):
+async def report_chat(req: ChatRequest):
     try:
-        response = await chat(user_prompt=request.user_prompt, uuid=request.uuid)
+        response = await chat(user_prompt=req.user_prompt, uuid=req.uuid)
         
         return JSONResponse(content={
             "status": "success",

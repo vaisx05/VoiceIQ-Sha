@@ -68,6 +68,9 @@ with open("prompts/report_agent_prompt.txt", "r") as file:
 with open("prompts/database_agent_prompt.txt", "r") as file:
     database_agent_prompt = file.read()
 
+with open("prompts/chat_agent_prompt.txt", "r") as file:
+    chat_agent_prompt = file.read()
+
 call_log_agent = Agent(
     model=groq_model,
     model_settings=groq_settings,
@@ -93,5 +96,6 @@ database_agent = Agent(
 chat_agent = Agent(
     model=groq_model,
     model_settings=groq_settings,
+    system_prompt=chat_agent_prompt,
     retries=3
 )

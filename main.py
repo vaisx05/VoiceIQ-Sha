@@ -1,16 +1,21 @@
-from database import DatabaseHandler
 from transcription import TranscriptionService
 from agents import deps, call_log_agent, report_agent, database_agent, chat_agent
-from pydantic_ai.messages import ModelMessage, UserPromptPart, TextPart, SystemPromptPart, ModelRequest, ModelResponse
+from memory import MemoryHandler
+from database import DatabaseHandler
+
+from pydantic_ai.messages import SystemPromptPart, ModelRequest
 import traceback
-from uuid import uuid4
+from uuid import UUID
+import asyncio
 from settings import Settings
 
 settings = Settings()
 
-db = DatabaseHandler(deps)
-
 transcription_service = TranscriptionService()
+
+memory = MemoryHandler(deps)
+
+db = DatabaseHandler(deps)
 
 async def main(file_path: str) -> None:
     try:
@@ -43,13 +48,20 @@ async def main(file_path: str) -> None:
         print(traceback.format_exc())
 
 
+async def chat(user_prompt: str, uuid : UUID) -> str:
 
-async def chat(user_prompt: str, uuid : uuid4) -> str:
-    messages : list[ModelMessage] = []
-    system_prompt : SystemPromptPart = await db.get_report(uuid=uuid)
-    messages.append(ModelRequest(parts=[SystemPromptPart(content=system_prompt)]))
+    user_id : str = "TestUser"
+
+    messages = await memory.get_memory(user_id=user_id, limit=20)
+
+    await memory.append_message(user_id=user_id, role="user", content=user_prompt)
+    
+    report = await db.get_report(uuid=uuid)
+    messages.append(ModelRequest(parts=[SystemPromptPart(content=report[0]["report_generated"])]))
     
     response = await chat_agent.run(user_prompt=user_prompt, message_history=messages)
     bot_response = response.data
-    return bot_response
+    
+    await memory.append_message(user_id=user_id, role="bot", content=bot_response)
 
+    return bot_response
