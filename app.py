@@ -7,7 +7,7 @@ from database import DatabaseHandler
 from fastapi.middleware.cors import CORSMiddleware
 from main import main, chat
 import shutil
-from uuid import  uuid4
+from uuid import uuid4, UUID
 import os
 
 db = DatabaseHandler(deps)
@@ -29,7 +29,10 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     user_prompt: str
-    uuid: uuid4
+    uuid: UUID
+
+class ReportRequest(BaseModel):
+    uuid: UUID
 
 # Pydantic model for /logs/columns POST request
 class ColumnRequest(BaseModel):
@@ -48,6 +51,14 @@ async def get_all_logs(limit: int):
 async def get_columns(req: ColumnRequest):
     try:
         result = await db.get_columns(req.columns, req.limit)
+        return {"data": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/logs/report")
+async def get_report(req: ReportRequest):
+    try:
+        result = await db.get_report(req.uuid)
         return {"data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
