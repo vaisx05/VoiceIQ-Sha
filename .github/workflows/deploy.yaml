@@ -21,7 +21,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ghcr.io/remiscus/voiceiq-backend
+            ghcr.io/Rikhil-Nell/voiceiq-backend
           tags: |
             type=ref,event=branch
             type=ref,event=tag
@@ -45,7 +45,7 @@ jobs:
 
       - name: Verify push
         run: |
-          docker pull ghcr.io/remiscus/voiceiq-backend:latest
+          docker pull ghcr.io/Rikhil-Nell/voiceiq-backend:${{ github.sha }}
 
       - name: Deploy to VPS
         if: github.ref == 'refs/heads/master'
@@ -56,7 +56,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             echo "Connected to VPS"
-            sudo docker pull ghcr.io/remiscus/voiceiq-backend:latest
+            sudo docker pull ghcr.io/Rikhil-Nell/voiceiq-backend:${{ github.sha }}
             sudo docker stop leetcode-master || true
             sudo docker rm leetcode-master || true
             sudo docker run -d -p 8000:8000 \
@@ -64,4 +64,4 @@ jobs:
               -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
               -e SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
               -e SUPABASE_KEY="${{ secrets.SUPABASE_KEY }}" \
-              ghcr.io/remiscus/voiceiq-backend:latest
+              ghcr.io/Rikhil-Nell/voiceiq-backend:${{ github.sha }}
