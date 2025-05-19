@@ -36,7 +36,7 @@ gemini_settings = GeminiModelSettings(
     frequency_penalty=0,
 )
 
-gemini_model_name : GeminiModelName = "gemini-2.5-pro-exp-03-25"
+gemini_model_name : GeminiModelName = "gemini-2.5-pro-preview-05-06"
 
 gemini_model = GeminiModel(
     model_name=gemini_model_name,
@@ -90,7 +90,7 @@ database_agent = Agent(
     model_settings=groq_settings,
     system_prompt=database_agent_prompt,
     retries=3,
-    result_type=Form
+    output_type=Form
 )
 
 chat_agent = Agent(
