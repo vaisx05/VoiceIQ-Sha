@@ -109,7 +109,7 @@ async def report_chat(req: ChatRequest):
 async def health():
     return JSONResponse(content={
             "status": "success",
-            "content": "healthy!"
+            "content": "healthy asf!"
         })
 
 if __name__ == "__main__":
