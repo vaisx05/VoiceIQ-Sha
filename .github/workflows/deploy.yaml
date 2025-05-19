@@ -52,7 +52,6 @@ jobs:
 
       - name: Verify push
         run: |
-          docker pull remiscus/voiceiq-backend:latest
           docker pull ghcr.io/remiscus/voiceiq-backend:latest
 
       - name: Deploy to VPS
@@ -64,7 +63,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             echo "Connected to VPS"
-            sudo docker pull remiscus/voiceiq-backend:latest
+            sudo docker pull remiscus/voiceiq:latest
             sudo docker stop leetcode-master || true
             sudo docker rm leetcode-master || true
             sudo docker run -d -p 8000:8000 \
