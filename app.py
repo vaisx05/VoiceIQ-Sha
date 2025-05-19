@@ -1,8 +1,10 @@
+import bcrypt
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List
 from agents import deps
+from auth import create_access_token, verify_password
 from database import DatabaseHandler
 from fastapi.middleware.cors import CORSMiddleware
 from main import main, chat
@@ -15,13 +17,13 @@ db = DatabaseHandler(deps)
 app = FastAPI()
 
 origins = [
-    "http://localhost:3000",  # your frontend
-    "http://127.0.0.1:3000",  # optional, in case you access it via 127.0.0.1
+    "http://localhost:3000",  
+    "http://127.0.0.1:3000",  
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # must match exactly
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -112,6 +114,43 @@ async def health():
             "status": "success",
             "content": "healthy asf!"
         })
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+@app.post("/login", response_model=Token)
+async def login(user: UserLogin):
+    user_data = await db.get_user_by_email(user.email)
+    if not user_data:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if not verify_password(user.password, user_data["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    token = create_access_token(data={"sub": str(user_data["email"])})
+    return {"access_token": token, "token_type": "bearer"}
+
+
+@app.post("/signup")
+async def signup(user: UserLogin):
+    existing_user = await db.get_user_by_email(user.email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    hashed = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt()).decode()
+
+    created = await db.create_user(user.email, hashed)
+    if not created:
+        raise HTTPException(status_code=500, detail="User creation failed")
+
+    return {"msg": "User created successfully"}
+
 
 if __name__ == "__main__":
     import uvicorn
