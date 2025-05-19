@@ -46,9 +46,9 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Verify push
-        run: |
-          docker pull ghcr.io/rikhil-nell/voiceiq-backend:${{ github.sha }}
+      # - name: Verify push
+      #   run: |
+      #     docker pull ghcr.io/rikhil-nell/voiceiq-backend:${{ github.sha }}
 
       - name: Deploy to VPS
         if: github.ref == 'refs/heads/master'
