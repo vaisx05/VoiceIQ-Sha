@@ -5,11 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "bcrypt>=4.3.0",
     "fastapi>=0.115.12",
     "groq>=0.22.0",
     "pydantic>=2.11.3",
     "pydantic-ai>=0.0.53",
     "pydantic-settings>=2.8.1",
+    "python-jose>=3.4.0",
     "python-multipart>=0.0.20",
     "supabase>=2.15.0",
 ]

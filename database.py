@@ -35,3 +35,16 @@ class DatabaseHandler:
     async def delete_call_log(self, call_id: str) -> bool:
         response = self.client.table(self.table).delete().eq("id", call_id).execute()
         return bool(response.data)
+    
+    async def get_user_by_email(self, email: str) -> Dict:
+        response = self.client.table("users").select("*").eq("email", email).execute()
+        return response.data[0] if response.data else {}
+
+    async def create_user(self, email: str, hashed_password: str) -> bool:
+        response = self.client.table("users").insert({
+            "email": email,
+            "hashed_password": hashed_password
+        }).execute()
+        return response.data[0] if response.data else {}
+
+        
