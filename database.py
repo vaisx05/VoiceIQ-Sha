@@ -15,7 +15,10 @@ class DatabaseHandler:
     async def get_all_logs(self) -> List[Dict]:
         response = self.client.table(self.table).select("*").order("created_at", desc=True).execute()
         return response.data or []
-
+    
+    async def get_log(self,id:str) -> List[Dict]:
+        response = self.client.table(self.table).select("*").eq("id",id).order("created_at", desc=True).execute()
+        return response.data or []
     # Get specific columns, limited rows
     async def get_columns(self, columns: List[str], limit: int) -> List[Dict]:
         column_str = ", ".join(columns)

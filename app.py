@@ -48,6 +48,14 @@ async def get_all_logs():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/logs/{id}")
+async def get_all_logs(id: str):  # or `id: str` depending on your data type
+    try:
+        result = await db.get_log(id=id)
+        return {"data": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 @app.post("/logs/columns")
 async def get_columns(req: ColumnRequest):
     try:
