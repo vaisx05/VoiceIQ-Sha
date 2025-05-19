@@ -19,7 +19,7 @@ db = DatabaseHandler(deps)
 
 async def main(file_path: str) -> None:
     try:
-        transcript = await transcription_service.transcribe_local(file_path=file_path)
+        transcript = await transcription_service.transcribe_groq(file_path=file_path)
         sanitized_transcript = await transcription_service.filter(transcript=transcript)
         print("✅ Transcription successful.")
         

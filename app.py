@@ -104,6 +104,13 @@ async def report_chat(req: ChatRequest):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/health")
+async def health():
+    return JSONResponse(content={
+            "status": "success",
+            "content": "healthy!"
+        })
 
 if __name__ == "__main__":
     import uvicorn
