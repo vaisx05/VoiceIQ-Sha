@@ -1,47 +1,75 @@
 name: build and deploy
+
 on:
   push:
     branches:
       - master
+    tags:
+      - 'v*'
+  pull_request:
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Docker login
+      - name: Set up Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            remiscus/voiceiq-backend
+            ghcr.io/remiscus/voiceiq-backend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha
+
+      - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v2
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: remiscus/voiceiq-backend
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
       - name: Verify push
-        run: docker pull remiscus/voiceiq-backend
+        run: |
+          docker pull remiscus/voiceiq-backend:latest
+          docker pull ghcr.io/remiscus/voiceiq-backend:latest
 
       - name: Deploy to VPS
+        if: github.ref == 'refs/heads/master'
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            echo "Connection successful!"
-            sudo docker pull remiscus/voiceiq-backend
+            echo "Connected to VPS"
+            sudo docker pull remiscus/voiceiq-backend:latest
             sudo docker stop leetcode-master || true
             sudo docker rm leetcode-master || true
             sudo docker run -d -p 8000:8000 \
-            -e GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
-            -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
-            -e SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
-            -e SUPABASE_KEY="${{ secrets.SUPABASE_KEY }}" \
-            remiscus/voiceiq-backend
+              -e GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
+              -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
+              -e SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+              -e SUPABASE_KEY="${{ secrets.SUPABASE_KEY }}" \
+              remiscus/voiceiq-backend:latest
