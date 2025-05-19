@@ -40,10 +40,10 @@ class ChatRequest(BaseModel):
     user_prompt: str
     uuid: UUID
 
-@app.get("/logs/all/{limit}")
-async def get_all_logs(limit: int):
+@app.get("/logs/all")
+async def get_all_logs():
     try:
-        result = await db.get_all_logs(limit)
+        result = await db.get_all_logs()
         return {"data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -80,14 +80,15 @@ async def create_log(file: UploadFile = File(...)):
 
         print("✅ TempFile Created.")
 
-        await main(file_path=temp_filename)
+        id = await main(file_path=temp_filename)
 
         if os.path.exists(temp_filename):
             os.remove(temp_filename)
 
         return JSONResponse(content={
             "status": "success",
-            "message" : "Log uploaded successfully"
+            "message" : "Log uploaded successfully",
+            "uuid": id
         })
 
     except Exception as e:

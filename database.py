@@ -1,9 +1,10 @@
 from typing import List, Dict, Any
+from supabase import Client
 
 class DatabaseHandler:
     def __init__(self, deps):
-        self.client = deps.supabase_client
-        self.table = "call_logs"
+        self.client : Client = deps.supabase_client
+        self.table : str = "call_logs"
 
     # Create
     async def create_call_log(self, data: Dict[str, Any]) -> Dict:
@@ -11,8 +12,8 @@ class DatabaseHandler:
         return response.data[0] if response.data else {}
 
     # Get all columns, limited rows
-    async def get_all_logs(self, limit: int) -> List[Dict]:
-        response = self.client.table(self.table).select("*").limit(limit).execute()
+    async def get_all_logs(self) -> List[Dict]:
+        response = self.client.table(self.table).select("*").order("created_at", desc=True).execute()
         return response.data or []
 
     # Get specific columns, limited rows
