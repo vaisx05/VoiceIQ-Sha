@@ -59,8 +59,8 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             echo "Connected to VPS"
-            SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-            sudo docker pull ghcr.io/rikhil-nell/voiceiq-backend:sha-$SHORT_SHA
+            # SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            sudo docker pull ghcr.io/rikhil-nell/voiceiq-backend:master
             sudo docker stop leetcode-master || true
             sudo docker rm leetcode-master || true
             sudo docker run -d -p 8000:8000 \
