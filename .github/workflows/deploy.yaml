@@ -68,4 +68,4 @@ jobs:
               -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
               -e SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
               -e SUPABASE_KEY="${{ secrets.SUPABASE_KEY }}" \
-              ghcr.io/rikhil-nell/voiceiq-backend:sha-$SHORT_SHA
+              ghcr.io/rikhil-nell/voiceiq-backend:master
