@@ -37,6 +37,8 @@ jobs:
                 script: |
                   echo "Connection successful!"
                   sudo docker pull remiscus/voiceiq-backend
+                  sudo docker stop voiceiq-backend || true
+                  sudo docker rm voiceiq-backend || true
                   sudo docker run -d --name voiceiq-backend -p 8000:8000 \
                     -e GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
                     -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
