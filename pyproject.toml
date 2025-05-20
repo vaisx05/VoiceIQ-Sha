@@ -7,11 +7,8 @@ requires-python = ">=3.13"
 dependencies = [
     "bcrypt>=4.3.0",
     "fastapi>=0.115.12",
-    "groq>=0.22.0",
-    "pydantic>=2.11.3",
-    "pydantic-ai>=0.2.0",
-    "pydantic-settings>=2.8.1",
+    "pydantic-ai>=0.2.4",
     "python-jose>=3.4.0",
     "python-multipart>=0.0.20",
-    "supabase>=2.15.0",
+    "supabase>=2.15.1",
 ]
