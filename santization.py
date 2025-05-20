@@ -40,6 +40,8 @@ class SanitizationService:
 
             Replace them with [REDACTED].
 
+            Except the names that are mentioned
+
             Example:
             Input: Call me at 555-123-4567 or email john.doe@example.com.
             Output: Call me at [REDACTED] or email [REDACTED].
