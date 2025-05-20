@@ -5,7 +5,7 @@ from pydantic_ai.models.groq import GroqModelSettings, GroqModel, GroqModelName
 from pydantic_ai.providers.groq import GroqProvider
 import groq
 from pydantic_ai.models.gemini import GeminiModelSettings, GeminiModel, GeminiModelName
-from pydantic_ai.providers.google_gla import GoogleGLAProvider
+from pydantic_ai.providers.google_vertex import GoogleVertexProvider
 from pydantic import BaseModel, Field
 from supabase import Client, create_client
 
@@ -20,7 +20,7 @@ groq_settings = GroqModelSettings(
     frequency_penalty=0,
 )
 
-groq_model_name : GroqModelName = "llama-3.3-70b-versatile"
+groq_model_name: GroqModelName = "llama-3.3-70b-versatile"
 
 async_groq_client = groq.AsyncGroq(api_key=settings.groq_api_key)
 
@@ -36,11 +36,18 @@ gemini_settings = GeminiModelSettings(
     frequency_penalty=0,
 )
 
-gemini_model_name : GeminiModelName = "gemini-2.5-pro-preview-05-06"
+gemini_provider = GoogleVertexProvider(
+    service_account_file=settings.google_service_account_file,
+    project_id=settings.google_project_id,
+    location='us-central1',
+    model_publisher='google'
+)
+
+gemini_model_name: GeminiModelName = "gemini-2.5-pro-preview-05-06"
 
 gemini_model = GeminiModel(
     model_name=gemini_model_name,
-    provider=GoogleGLAProvider(api_key=settings.gemini_api_key)
+    provider=gemini_provider
 )
 
 
