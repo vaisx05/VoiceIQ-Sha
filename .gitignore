@@ -14,3 +14,5 @@ Careless Whisper.mp3
 .settings.py
 file.wav
 .env.txt
+service-account.json
+session-account.json

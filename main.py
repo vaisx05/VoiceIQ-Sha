@@ -1,5 +1,6 @@
 from transcription import TranscriptionService
-from agents import deps, call_log_agent, report_agent, database_agent, chat_agent
+from santization import SanitizationService
+from agents import deps, call_log_agent, report_agent, database_agent, chat_agent, async_groq_client
 from memory import MemoryHandler
 from database import DatabaseHandler
 
@@ -10,17 +11,19 @@ from settings import Settings
 
 settings = Settings()
 
-transcription_service = TranscriptionService()
+transcription_service = TranscriptionService(groq_client=async_groq_client)
 
-memory = MemoryHandler(deps)
+sanitization_service = SanitizationService(groq_client=async_groq_client)
 
-db = DatabaseHandler(deps)
+memory = MemoryHandler(deps=deps)
+
+db = DatabaseHandler(deps=deps)
 
 async def main(file_path: str) -> str:
     try:
         transcript = await transcription_service.transcribe_groq(file_path=file_path)
-        sanitized_transcript = await transcription_service.filter(transcript=transcript)
-        print("✅ Transcription successful.")
+        sanitized_transcript = await sanitization_service.sanitize(transcript=transcript)
+        print("✅ Transcription and sanitization successful.")
         
         call_log_agent_response = await call_log_agent.run(user_prompt=sanitized_transcript)
         report_agent_response = await report_agent.run(user_prompt=sanitized_transcript)

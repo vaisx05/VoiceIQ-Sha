@@ -1,12 +1,11 @@
 import os
 import mimetypes
 import requests
-import re
-from agents import async_groq_client
+from groq import Groq
 
 class TranscriptionService:
-    def __init__(self):
-        self.groq_client = async_groq_client
+    def __init__(self, groq_client: Groq):
+        self.groq_client = groq_client
         self.remote_url = "https://guest1.indominuslabs.in/transcribe"
 
     def _load_audio_file(self, file_path: str) -> tuple[str, bytes, str]:
@@ -48,21 +47,3 @@ class TranscriptionService:
                 temperature=0.0
             )
         return transcription.text
-
-    async def filter(self, transcript: str) -> str:
-        """Sanitize PII like card numbers and SSNs."""
-        # Mask card numbers
-        card_pattern = r'\b((?:\d[ -]?){6})(?:(?:[Xx\- ]{1,6}|\d[ -]?){2,9})([ -]?\d{4})\b'
-        def mask_card(match):
-            first = re.sub(r'\D', '', match.group(1))[:6]
-            last = re.sub(r'\D', '', match.group(2))[-4:]
-            masked = f"{first}{'X' * max(0, 16 - len(first) - len(last))}{last}"
-            return masked
-
-        sanitized = re.sub(card_pattern, mask_card, transcript)
-
-        # Mask SSNs
-        ssn_pattern = r'\b(\d{3}|X{3})[- ]?(\d{2}|X{2})[- ]?(\d{4})\b'
-        sanitized = re.sub(ssn_pattern, r'XXX-XX-\3', sanitized)
-
-        return sanitized
