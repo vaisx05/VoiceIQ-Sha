@@ -7,6 +7,7 @@ from database import DatabaseHandler
 from pydantic_ai.messages import SystemPromptPart, ModelRequest
 import traceback
 from uuid import UUID
+import re
 from settings import Settings
 
 settings = Settings()
@@ -27,6 +28,7 @@ async def main(file_path: str) -> str:
         
         call_log_agent_response = await call_log_agent.run(user_prompt=sanitized_transcript)
         report_agent_response = await report_agent.run(user_prompt=sanitized_transcript)
+        report_cleaned_response = re.sub(r'<think>.*?</think>', '', report_agent_response.output, flags=re.DOTALL)
         database_agent_response = await database_agent.run(user_prompt=sanitized_transcript)
         if not database_agent_response.output:
             raise ValueError("Database Agent failed to extract structured data")
@@ -38,7 +40,7 @@ async def main(file_path: str) -> str:
             "request_type": database_agent_response.output.request_type,
             "issue_summary": database_agent_response.output.issue_summary,
             "caller_sentiment": database_agent_response.output.caller_sentiment,
-            "report_generated": report_agent_response.output,
+            "report_generated": report_cleaned_response,
             "call_log": call_log_agent_response.output,
             "transcription": sanitized_transcript
         }
@@ -63,7 +65,7 @@ async def chat(user_prompt: str, uuid : UUID) -> str:
     await memory.append_message(user_id=user_id, role="user", content=user_prompt)
     
     report = await db.get_report(uuid=uuid)
-    messages.append(ModelRequest(parts=[SystemPromptPart(content=report[0]["report_generated"])]))
+    messages.append(ModelRequest(parts=[SystemPromptPart(content=report[0]["transcription"])]))
     
     response = await chat_agent.run(user_prompt=user_prompt, message_history=messages)
     bot_response = response.output
