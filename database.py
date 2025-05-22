@@ -29,6 +29,11 @@ class DatabaseHandler:
     async def get_report(self, uuid: str) -> Dict:
         response = self.client.table(self.table).select("report_generated").eq("id", uuid).execute()
         return response.data or []
+    
+    # Get transcription by uuid
+    async def get_transcription(self, uuid: str) -> Dict:
+        response = self.client.table(self.table).select("transcription").eq("id", uuid).execute()
+        return response.data[0] or []
 
     # Update
     async def update_call_log(self, call_id: str, update_data: Dict[str, Any]) -> Dict:

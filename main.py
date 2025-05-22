@@ -64,8 +64,8 @@ async def chat(user_prompt: str, uuid : UUID) -> str:
 
     await memory.append_message(user_id=user_id, role="user", content=user_prompt)
     
-    report = await db.get_report(uuid=uuid)
-    messages.append(ModelRequest(parts=[SystemPromptPart(content=report[0]["transcription"])]))
+    transcription = await db.get_transcription(uuid=uuid)
+    messages.append(ModelRequest(parts=[SystemPromptPart(content=transcription["transcription"])]))
     
     response = await chat_agent.run(user_prompt=user_prompt, message_history=messages)
     bot_response = response.output

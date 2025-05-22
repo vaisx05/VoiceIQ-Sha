@@ -31,20 +31,23 @@ class SanitizationService:
         prompt = f"""
             You are a redaction assistant.
 
-            Redact all personal identifiable information (PII) such as:
+            Redact personal identifiable information (PII) such as:
             - Social Security Numbers (SSNs)
-            - Phone numbers
             - Credit/debit card numbers
-            - Email addresses
             - Government-issued ID numbers
 
-            Replace them with [REDACTED].
+            Replace them with X and only expose a few digits at the start and at the end.
+            
+            Keep these details:
+            - Names
+            - Phone numbers
+            - Email addresses
 
             Except the names that are mentioned
 
             Example:
             Input: Call me at 555-123-4567 or email john.doe@example.com.
-            Output: Call me at [REDACTED] or email [REDACTED].
+            Output: Call me at 5XX-XXX-XX67 or email john.doe@example.com.
 
             Now redact this transcript:
             
