@@ -82,7 +82,7 @@ async def create_log(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Only .wav or .mp3 files are supported")
 
     try:
-        temp_filename = f"temp_{uuid4()}{ext}"
+        temp_filename = file.filename
 
         with open(temp_filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
