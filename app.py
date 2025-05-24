@@ -1,5 +1,5 @@
 import bcrypt
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List
@@ -11,6 +11,7 @@ from main import main, chat
 import shutil
 from uuid import uuid4, UUID
 import os
+from datetime import datetime
 
 db = DatabaseHandler(deps)
 
@@ -41,6 +42,18 @@ class ChatRequest(BaseModel):
     user_prompt: str
     uuid: UUID
 
+class Dates(BaseModel):
+    from_date: datetime
+    to_date: datetime
+
+@app.post("/logs/date")
+async def get_all_by_dates(req: Dates):
+    try:
+        call_logs = await db.get_all_by_dates(req.from_date, req.to_date)
+        return {"data": call_logs}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/logs/all")
 async def get_all_logs():
     try:
@@ -50,7 +63,7 @@ async def get_all_logs():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/logs/{id}")
-async def get_all_logs(id: str):  # or `id: str` depending on your data type
+async def get_all_by_id(id: str):  # or `id: str` depending on your data type
     try:
         result = await db.get_log(id=id)
         return {"data": result}

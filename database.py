@@ -1,9 +1,10 @@
 from typing import List, Dict, Any
-from supabase import Client
+import datetime
+from supabase import AsyncClient
 
 class DatabaseHandler:
     def __init__(self, deps):
-        self.client : Client = deps.supabase_client
+        self.client : AsyncClient = deps.supabase_client
         self.table : str = "call_logs"
 
     # Create
@@ -35,6 +36,17 @@ class DatabaseHandler:
     async def get_transcription(self, uuid: str) -> Dict:
         response = self.client.table(self.table).select("transcription").eq("id", uuid).execute()
         return response.data[0] or []
+    
+    async def get_all_by_dates(self, start_date: datetime, end_date: datetime) -> List[Dict]:
+        response = (
+            self.client.table(self.table)
+            .select("*")
+            .gte("call_date", start_date.isoformat())
+            .lte("call_date", end_date.isoformat())
+            .order("call_date", desc=True)
+            .execute()
+        )
+        return response.data or []
 
     # Update
     async def update_call_log(self, call_id: str, update_data: Dict[str, Any]) -> Dict:
@@ -45,7 +57,9 @@ class DatabaseHandler:
     async def delete_call_log(self, call_id: str) -> bool:
         response = self.client.table(self.table).delete().eq("id", call_id).execute()
         return bool(response.data)
-    
+
+
+    # User stuff
     async def get_user_by_email(self, email: str) -> Dict:
         response = self.client.table("users").select("*").eq("email", email).execute()
         return response.data[0] if response.data else {}
