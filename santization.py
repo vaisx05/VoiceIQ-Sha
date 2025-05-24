@@ -58,6 +58,7 @@ class SanitizationService:
 
         response = await self.groq_client.chat.completions.create(
             model="deepseek-r1-distill-llama-70b",
+            reasoning_format="hidden",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
         )
