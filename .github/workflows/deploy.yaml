@@ -31,17 +31,17 @@ jobs:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
-                host: ${{ secrets.SSH_HOST }}
-                username: ${{ secrets.SSH_USER }}
-                key: ${{ secrets.SSH_KEY }}
-                script: |
-                  echo "Connection successful!"
-                  sudo docker pull remiscus/voiceiq-backend
-                  sudo docker stop voiceiq-backend || true
-                  sudo docker rm voiceiq-backend || true
-                  sudo docker run -d --name voiceiq-backend -p 8000:8000 \
-                    -e GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
-                    -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
-                    -e SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
-                    -e SUPABASE_KEY="${{ secrets.SUPABASE_KEY }}" \
-                    remiscus/voiceiq-backend
+              host: ${{ secrets.SSH_HOST }}
+              username: ${{ secrets.SSH_USER }}
+              key: ${{ secrets.SSH_KEY }}
+              script: |
+                echo "Connection successful!"
+                sudo docker pull remiscus/voiceiq-backend
+                sudo docker stop voiceiq-backend || true
+                sudo docker rm voiceiq-backend || true
+                sudo docker run -d --name voiceiq-backend -p 8000:8000 \
+                  -e GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
+                  -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
+                  -e SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+                  -e SUPABASE_KEY="${{ secrets.SUPABASE_KEY }}" \
+                  remiscus/voiceiq-backend
