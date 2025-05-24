@@ -48,6 +48,10 @@ class DatabaseHandler:
         )
         return response.data or []
 
+    async def file_exists(self, filename: str) -> bool:
+        response = self.client.table(self.table).select("id").eq("filename", filename).execute()
+        return bool(response.data)
+
     # Update
     async def update_call_log(self, call_id: str, update_data: Dict[str, Any]) -> Dict:
         response = self.client.table(self.table).update(update_data).eq("id", call_id).execute()

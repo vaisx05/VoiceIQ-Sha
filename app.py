@@ -90,12 +90,17 @@ async def get_report(req: ReportRequest):
 async def create_log(file: UploadFile = File(...)):
     allowed_exts = (".wav", ".mp3")
     ext = os.path.splitext(file.filename)[-1].lower()
+    filename = file.filename
 
     if ext not in allowed_exts:
         raise HTTPException(status_code=400, detail="Only .wav or .mp3 files are supported")
 
+    # Check if filename already exists
+    if await db.file_exists(filename):
+        raise HTTPException(status_code=409, detail="File with this name already uploaded")
+
     try:
-        temp_filename = file.filename
+        temp_filename = filename
 
         with open(temp_filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -114,8 +119,7 @@ async def create_log(file: UploadFile = File(...)):
         })
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
+        raise HTTPException(status_code=500, detail=str(e))    
 
 @app.post("/chat")
 async def report_chat(req: ChatRequest):
