@@ -3,6 +3,7 @@ from santization import SanitizationService
 from agents import deps, call_log_agent, report_agent, database_agent, chat_agent, async_groq_client
 from memory import MemoryHandler
 from database import DatabaseHandler
+from filename_parser import parse_call_filename
 
 from pydantic_ai.messages import SystemPromptPart, ModelRequest
 import traceback
@@ -34,6 +35,8 @@ async def main(file_path: str) -> str:
             raise ValueError("Database Agent failed to extract structured data")
         print("✅ Agents executed successfully.")
         
+        metadata = await parse_call_filename(filename=file_path)
+        
         payload : dict = {
             "responder_name": database_agent_response.output.responder_name,
             "caller_name": database_agent_response.output.caller_name,
@@ -42,8 +45,18 @@ async def main(file_path: str) -> str:
             "caller_sentiment": database_agent_response.output.caller_sentiment,
             "report_generated": report_cleaned_response,
             "call_log": call_log_agent_response.output,
-            "transcription": sanitized_transcript
+            "transcription": sanitized_transcript,
+            "filename": metadata["filename"],
+            "call_type": metadata["call_type"],
+            "toll_free_did": metadata["toll_free_did"],
+            "agent_extension": metadata["agent_extension"],
+            "customer_number": metadata["customer_number"],
+            "call_date": metadata["call_date"],
+            "call_start_time": metadata["call_start_time"],
+            "call_id": metadata["call_id"]
         }
+        
+
         print("✅ Payload created successfully.")
         
         response = await db.create_call_log(data=payload)
