@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List
-from agents import deps
+from agents import deps, async_groq_client
 from auth import create_access_token, verify_password
 from database import DatabaseHandler
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,8 +12,11 @@ import shutil
 from uuid import uuid4, UUID
 import os
 from datetime import datetime
+from transcription import TranscriptionService
 
 db = DatabaseHandler(deps)
+
+transcription_service = TranscriptionService(groq_client=async_groq_client)
 
 app = FastAPI()
 
@@ -45,6 +48,10 @@ class ChatRequest(BaseModel):
 class Dates(BaseModel):
     from_date: datetime
     to_date: datetime
+
+class VoiceChatRequest(BaseModel):
+    file: UploadFile = File(...)
+    uuid: UUID
 
 @app.post("/logs/date")
 async def get_all_by_dates(req: Dates):
@@ -126,6 +133,29 @@ async def report_chat(req: ChatRequest):
     try:
         response = await chat(user_prompt=req.user_prompt, uuid=req.uuid)
         
+        return JSONResponse(content={
+            "status": "success",
+            "content": response
+        })
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/voice_chat")
+async def report_voice_chat(file: UploadFile = File(...), uuid: UUID = Form(...)):
+    try:
+        temp_filename = file.filename
+
+        with open(temp_filename, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        transcript = await transcription_service.transcribe_groq(file_path=temp_filename)
+
+        response = await chat(user_prompt=transcript, uuid=uuid)
+        
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)
+
         return JSONResponse(content={
             "status": "success",
             "content": response
