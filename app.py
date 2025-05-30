@@ -158,6 +158,7 @@ async def report_voice_chat(file: UploadFile = File(...), uuid: UUID = Form(...)
 
         return JSONResponse(content={
             "status": "success",
+            "user_prompt": transcript,
             "content": response
         })
     

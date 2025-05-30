@@ -63,6 +63,10 @@ class Form(BaseModel):
     issue_summary: str = Field(description="Detailed description of 50 lines of the issue being reported by the caller")
     caller_sentiment: str = Field(description="The emotion of the customer to be given in one word out of the list: [happy, sad, angry, frustrated]")
 
+class Questionary(BaseModel):
+    questions: str = Field(description="A list of questions to ask the user based on the conversation history.")
+
+
 @dataclass
 class Deps:
     supabase_url: str = settings.supabase_url
@@ -82,6 +86,9 @@ with open("prompts/database_agent_prompt.txt", "r") as file:
 
 with open("prompts/chat_agent_prompt.txt", "r") as file:
     chat_agent_prompt = file.read()
+
+with open("prompts/questionary_agent_prompt.txt", "r") as file:
+    questionary_agent_prompt = file.read()
 
 call_log_agent = Agent(
     model=groq_model,
@@ -109,5 +116,12 @@ chat_agent = Agent(
     model=groq_model,
     model_settings=groq_settings,
     system_prompt=chat_agent_prompt,
+    retries=3
+)
+
+questionary_agent = Agent(
+    model=groq_model,
+    model_settings=groq_settings,
+    system_prompt=questionary_agent_prompt,
     retries=3
 )
