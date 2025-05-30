@@ -75,19 +75,19 @@ class Deps:
     
 deps = Deps()
 
-with open("prompts/call_log_agent_prompt.txt", "r") as file:
+with open("prompts/call_log_agent_prompt.txt", "r", encoding="utf-8") as file:
     call_log_agent_prompt = file.read()
 
-with open("prompts/report_agent_prompt.txt", "r") as file:
+with open("prompts/report_agent_prompt.txt", "r", encoding="utf-8") as file:
     report_agent_prompt = file.read()
 
-with open("prompts/database_agent_prompt.txt", "r") as file:
+with open("prompts/database_agent_prompt.txt", "r", encoding="utf-8") as file:
     database_agent_prompt = file.read()
 
-with open("prompts/chat_agent_prompt.txt", "r") as file:
+with open("prompts/chat_agent_prompt.txt", "r", encoding="utf-8") as file:
     chat_agent_prompt = file.read()
 
-with open("prompts/questionary_agent_prompt.txt", "r") as file:
+with open("prompts/questionary_agent_prompt.txt", "r", encoding="utf-8")as file:
     questionary_agent_prompt = file.read()
 
 call_log_agent = Agent(

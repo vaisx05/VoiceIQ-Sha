@@ -17,7 +17,7 @@ class DatabaseHandler:
         response = self.client.table(self.table).select("*").order("created_at", desc=True).execute()
         return response.data or []
     
-    async def get_log(self, id:str) -> List[Dict]:
+    async def get_log(self, id: str) -> List[Dict]:
         response = self.client.table(self.table).select("*").eq("id",id).order("created_at", desc=True).execute()
         return response.data or []
     
@@ -58,8 +58,8 @@ class DatabaseHandler:
         return response.data[0] if response.data else {}
 
     # Delete
-    async def delete_call_log(self, call_id: str) -> bool:
-        response = self.client.table(self.table).delete().eq("id", call_id).execute()
+    async def delete_call_log(self, id: str) -> bool:
+        response = self.client.table(self.table).delete().eq("id", id).execute()
         return bool(response.data)
 
 
