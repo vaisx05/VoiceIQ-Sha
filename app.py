@@ -108,7 +108,7 @@ async def create_log(file: UploadFile = File(...)):
     try:
         with open(file.filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        print("✅ TempFile Created.")
+        print("[INFO] TempFile Created.")
 
         # Step 1: Insert metadata with status='processing'
         log_id = await create_initial_log(file_path=file.filename)
