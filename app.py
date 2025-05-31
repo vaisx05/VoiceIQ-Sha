@@ -7,9 +7,10 @@ from agents import deps
 from auth import create_access_token, verify_password
 from database import DatabaseHandler
 from fastapi.middleware.cors import CORSMiddleware
-from main import main, chat
+from main import chat, create_initial_log, complete_log_processing
+import traceback
 import shutil
-from uuid import uuid4, UUID
+from uuid import UUID
 import os
 from datetime import datetime
 from transcription import TranscriptionService
@@ -97,36 +98,36 @@ async def get_report(req: ReportRequest):
 async def create_log(file: UploadFile = File(...)):
     allowed_exts = (".wav", ".mp3")
     ext = os.path.splitext(file.filename)[-1].lower()
-    filename = file.filename
 
     if ext not in allowed_exts:
         raise HTTPException(status_code=400, detail="Only .wav or .mp3 files are supported")
 
-    # Check if filename already exists
-    if await db.file_exists(filename):
+    if await db.file_exists(file.filename):
         raise HTTPException(status_code=409, detail="File with this name already uploaded")
 
     try:
-        temp_filename = filename
-
-        with open(temp_filename, "wb") as buffer:
+        with open(file.filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-
         print("✅ TempFile Created.")
 
-        id = await main(file_path=temp_filename)
+        # Step 1: Insert metadata with status='processing'
+        log_id = await create_initial_log(file_path=file.filename)
 
-        if os.path.exists(temp_filename):
-            os.remove(temp_filename)
+        # Step 2: Kick off processing (could later be pushed to background or a worker)
+        await complete_log_processing(file_path=file.filename, log_id=log_id)
+
+        if os.path.exists(file.filename):
+            os.remove(file.filename)
 
         return JSONResponse(content={
             "status": "success",
-            "message" : "Log uploaded successfully",
-            "uuid": id
+            "message": "Log uploaded and processing complete",
+            "uuid": log_id
         })
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))    
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Internal server error")    
 
 @app.post("/chat")
 async def report_chat(req: ChatRequest):
