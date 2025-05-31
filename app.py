@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List
-from agents import deps, async_groq_client
+from agents import deps
 from auth import create_access_token, verify_password
 from database import DatabaseHandler
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +16,7 @@ from transcription import TranscriptionService
 
 db = DatabaseHandler(deps)
 
-transcription_service = TranscriptionService(groq_client=async_groq_client)
+transcription_service = TranscriptionService()
 
 app = FastAPI()
 
@@ -149,7 +149,7 @@ async def report_voice_chat(file: UploadFile = File(...), uuid: UUID = Form(...)
         with open(temp_filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        transcript = await transcription_service.transcribe_groq(file_path=temp_filename)
+        transcript = await transcription_service.transcribe(file_path=temp_filename)
 
         response = await chat(user_prompt=transcript, uuid=uuid)
         

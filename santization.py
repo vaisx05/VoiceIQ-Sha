@@ -1,9 +1,9 @@
 import re
-from groq import Groq
+from agents import async_groq_client
 
 class SanitizationService:
-    def __init__(self, groq_client: Groq):
-        self.groq_client = groq_client
+    def __init__(self):
+        self.groq_client = async_groq_client
 
     def _regex_filter(self, text: str) -> str:
         """Fast masking for SSNs and card numbers."""

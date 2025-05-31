@@ -13,9 +13,9 @@ from settings import Settings
 
 settings = Settings()
 
-transcription_service = TranscriptionService(groq_client=async_groq_client)
+transcription_service = TranscriptionService()
 
-sanitization_service = SanitizationService(groq_client=async_groq_client)
+sanitization_service = SanitizationService()
 
 memory = MemoryHandler(deps=deps)
 
@@ -23,7 +23,7 @@ db = DatabaseHandler(deps=deps)
 
 async def main(file_path: str) -> str:
     try:
-        transcript = await transcription_service.transcribe_groq(file_path=file_path)
+        transcript = await transcription_service.transcribe(file_path=file_path)
         sanitized_transcript = await sanitization_service.sanitize(transcript=transcript)
         print("✅ Transcription and sanitization successful.")
         
@@ -46,6 +46,7 @@ async def main(file_path: str) -> str:
             "report_generated": report_cleaned_response,
             "call_log": call_log_agent_response.output,
             "transcription": sanitized_transcript,
+            #metadata
             "filename": metadata["filename"],
             "call_type": metadata["call_type"],
             "toll_free_did": metadata["toll_free_did"],

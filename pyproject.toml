@@ -5,10 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "audioop-lts>=0.2.1",
     "bcrypt>=4.3.0",
     "fastapi>=0.115.12",
-    "pydantic-ai>=0.2.4",
-    "python-jose>=3.4.0",
+    "pyaudio>=0.2.14",
+    "pydantic-ai>=0.2.12",
+    "pydub>=0.25.1",
+    "python-jose>=3.5.0",
     "python-multipart>=0.0.20",
-    "supabase>=2.15.1",
+    "supabase>=2.15.2",
 ]

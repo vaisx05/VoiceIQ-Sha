@@ -64,7 +64,8 @@ class Form(BaseModel):
     caller_sentiment: str = Field(description="The emotion of the customer to be given in one word out of the list: [happy, sad, angry, frustrated]")
 
 class Questionary(BaseModel):
-    questions: str = Field(description="A list of questions to ask the user based on the conversation history.")
+    product_sold: str = Field(description="What did the agent sell out of the list: [TV, Wireless Connection, Internet]")
+    
 
 
 @dataclass
