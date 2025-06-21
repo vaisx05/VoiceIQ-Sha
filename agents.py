@@ -3,15 +3,15 @@ from dataclasses import dataclass
 from pydantic_ai import Agent
 from pydantic_ai.models.groq import GroqModelSettings, GroqModel, GroqModelName
 from pydantic_ai.providers.groq import GroqProvider
-# from pydantic_ai.models.gemini import GeminiModelSettings, GeminiModel, GeminiModelName
-# from pydantic_ai.providers.google_vertex import GoogleVertexProvider
 from pydantic import BaseModel, Field
 from supabase import Client, create_client
 import groq
-
+import logfire
 from settings import Settings
 
 settings = Settings()
+logfire.configure(token=settings.logfire_write_token)
+logfire.instrument_pydantic_ai()
 
 # Groq Model Definition
 groq_settings = GroqModelSettings(
@@ -36,26 +36,6 @@ report_model = GroqModel(
     provider=GroqProvider(groq_client=async_groq_client),
 )
 
-# Gemini Model Definition
-# gemini_settings = GeminiModelSettings(
-#     temperature=0.7,
-#     top_p=0.95,
-#     frequency_penalty=0,
-# )
-
-# gemini_provider = GoogleVertexProvider(
-#     service_account_info=settings.gcp_service_account_info,
-#     project_id=settings.gcp_project_id
-# )
-
-# gemini_model_name: GeminiModelName = "gemini-2.5-pro-preview-05-06"
-
-# gemini_model = GeminiModel(
-#     model_name=gemini_model_name,
-#     provider=gemini_provider
-# )
-
-
 class Form(BaseModel):
     responder_name: str = Field(description="The first name of the responder attending to the request, if given, else return 'null'")
     caller_name: str = Field(description="The first name of the caller making the request if given, else return 'null'")
@@ -65,8 +45,6 @@ class Form(BaseModel):
 
 class Questionary(BaseModel):
     product_sold: str = Field(description="What did the agent sell out of the list: [TV, Wireless Connection, Internet]")
-    
-
 
 @dataclass
 class Deps:

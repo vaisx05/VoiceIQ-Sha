@@ -7,19 +7,36 @@ from agents import deps
 from auth import create_access_token, verify_password
 from database import DatabaseHandler
 from fastapi.middleware.cors import CORSMiddleware
-from main import chat, create_initial_log, complete_log_processing
+from main import chat, process_log
 import traceback
 import shutil
 from uuid import UUID
 import os
 from datetime import datetime
+import boto3
 from transcription import TranscriptionService
+import logfire
+from settings import Settings
+
+settings = Settings()
+
+s3 = boto3.client(
+    "s3",
+    # aws_access_key_id=settings.aws_access_key,
+    # aws_secret_access_key=settings.aws_secret_access_key,
+    # region_name="us-east-1"  # Adjust region as needed
+)
+
+BUCKET_NAME = "call-logs-audio-files" 
 
 db = DatabaseHandler(deps)
 
-transcription_service = TranscriptionService()
+transcription_service = TranscriptionService(bucket_name=BUCKET_NAME)
 
 app = FastAPI()
+
+logfire.configure(token=settings.logfire_write_token)
+logfire.instrument_fastapi(app=app)
 
 origins = [
     "http://localhost:3000",  
@@ -106,18 +123,16 @@ async def create_log(file: UploadFile = File(...)):
         raise HTTPException(status_code=409, detail="File with this name already uploaded")
 
     try:
-        with open(file.filename, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        print("[INFO] TempFile Created.")
+        file_data = await file.read()
 
-        # Step 1: Insert metadata with status='processing'
-        log_id = await create_initial_log(file_path=file.filename)
+        s3.put_object(
+            Bucket=BUCKET_NAME,
+            Key=file.filename,
+            Body=file_data,
+            ContentType=file.content_type
+        )
 
-        # Step 2: Kick off processing (could later be pushed to background or a worker)
-        await complete_log_processing(file_path=file.filename, log_id=log_id)
-
-        if os.path.exists(file.filename):
-            os.remove(file.filename)
+        log_id = await process_log(filename=file.filename)
 
         return JSONResponse(content={
             "status": "success",
@@ -127,12 +142,12 @@ async def create_log(file: UploadFile = File(...)):
 
     except Exception as e:
         print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail="Internal server error")    
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/chat")
-async def report_chat(req: ChatRequest):
+async def report_chat(user_prompt: str = Form(...), uuid: UUID = Form(...)):
     try:
-        response = await chat(user_prompt=req.user_prompt, uuid=req.uuid)
+        response = await chat(user_prompt=user_prompt, uuid=uuid)
         
         return JSONResponse(content={
             "status": "success",
