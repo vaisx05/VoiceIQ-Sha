@@ -145,9 +145,9 @@ async def create_log(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/chat")
-async def report_chat(user_prompt: str = Form(...), uuid: UUID = Form(...)):
+async def report_chat(ctx : ChatRequest):
     try:
-        response = await chat(user_prompt=user_prompt, uuid=uuid)
+        response = await chat(user_prompt=ctx.user_prompt, uuid=ctx.uuid)
         
         return JSONResponse(content={
             "status": "success",
