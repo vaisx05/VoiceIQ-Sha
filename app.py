@@ -1,6 +1,7 @@
 import bcrypt
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
+from filename_parser import parse_call_filename
 from pydantic import BaseModel
 from typing import List
 from agents import deps
@@ -131,8 +132,21 @@ async def create_log(file: UploadFile = File(...)):
             Body=file_data,
             ContentType=file.content_type
         )
+        
+        # Parse metadata from filename
+        metadata = await parse_call_filename(file.filename)
 
-        log_id = await process_log(filename=file.filename)
+        # Insert initial row in Supabase with metadata and status
+        initial_payload = {
+            **metadata,
+            "status": "processing",
+        }
+        initial_row = await db.create_call_log(initial_payload)
+        log_id = initial_row["id"]
+
+        # Start processing in the background
+        import asyncio
+        asyncio.create_task(process_and_update_log(file.filename, log_id))
 
         return JSONResponse(content={
             "status": "success",
@@ -143,6 +157,13 @@ async def create_log(file: UploadFile = File(...)):
     except Exception as e:
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error")
+
+# Add this function to handle background processing and update
+async def process_and_update_log(filename: str, log_id: str):
+    from main import process_log
+    payload = await process_log(filename)
+    update_data = {**payload, "status": "complete"}
+    await db.update_call_log(log_id, update_data)
 
 @app.post("/chat")
 async def report_chat(ctx : ChatRequest):
