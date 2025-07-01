@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from main import chat, process_log
 import traceback
 import shutil
+import asyncio
 from uuid import UUID
 import os
 from datetime import datetime
@@ -122,7 +123,19 @@ async def create_log(file: UploadFile = File(...)):
 
     if await db.file_exists(file.filename):
         raise HTTPException(status_code=409, detail="File with this name already uploaded")
+    
+    # Parse metadata from filename
+    metadata = await parse_call_filename(file.filename)
+    
+    # Insert initial row in Supabase with metadata and status
+    initial_payload = {
+        **metadata,
+        "status": "processing",
+    }   
 
+    initial_row = await db.create_call_log(initial_payload)
+    log_id = initial_row["id"] 
+    
     try:
         file_data = await file.read()
 
@@ -132,20 +145,14 @@ async def create_log(file: UploadFile = File(...)):
             Body=file_data,
             ContentType=file.content_type
         )
-        
-        # Parse metadata from filename
-        metadata = await parse_call_filename(file.filename)
 
-        # Insert initial row in Supabase with metadata and status
-        initial_payload = {
-            **metadata,
-            "status": "processing",
-        }
-        initial_row = await db.create_call_log(initial_payload)
-        log_id = initial_row["id"]
+    # except Exception as e:
+    #     #If S3 upload fails, update status to "failed"
+    #     await db.update_call_log(log_id, {"status": "failed"})
+    #     print(traceback.format_exc())
+    #     raise HTTPException(status_code=500, detail="S3 upload failed")
 
-        # Start processing in the background
-        import asyncio
+        #Start processing in the background
         asyncio.create_task(process_and_update_log(file.filename, log_id))
 
         return JSONResponse(content={
