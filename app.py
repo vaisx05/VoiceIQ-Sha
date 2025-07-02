@@ -1,5 +1,5 @@
 import bcrypt
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
 from fastapi.responses import JSONResponse
 from filename_parser import parse_call_filename
 from pydantic import BaseModel
@@ -24,8 +24,8 @@ settings = Settings()
 
 s3 = boto3.client(
     "s3",
-    # aws_access_key_id=settings.aws_access_key,
-    # aws_secret_access_key=settings.aws_secret_access_key,
+    aws_access_key_id=settings.aws_access_key,
+    aws_secret_access_key=settings.aws_secret_access_key,
     # region_name="us-east-1"  # Adjust region as needed
 )
 
@@ -81,11 +81,19 @@ async def get_all_by_dates(req: Dates):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# @app.get("/logs/all")
+# async def get_all_logs():
+#     try:
+#         result = await db.get_all_logs()
+#         return {"data": result}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/logs/all")
-async def get_all_logs():
+async def get_all_logs(limit: int = Query(20, gt=0), offset: int = Query(0, ge=0)):
     try:
-        result = await db.get_all_logs()
-        return {"data": result}
+        result = await db.get_logs_paginated(limit=limit, offset=offset)
+        return {"data": result, "limit": limit, "offset": offset}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
