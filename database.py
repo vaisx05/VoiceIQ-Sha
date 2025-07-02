@@ -21,6 +21,13 @@ class DatabaseHandler:
         response = self.client.table(self.table).select("*").eq("id",id).order("created_at", desc=True).execute()
         return response.data or []
     
+    # Get all logs with pagination
+    async def get_logs_paginated(self, limit: int, offset: int):
+        query = f"SELECT * FROM call_logs ORDER BY created_at DESC LIMIT {limit} OFFSET {offset}"
+        result = await self.fetch_all(query)
+        return result
+
+    
     # Get specific columns, limited rows
     async def get_columns(self, columns: List[str], limit: int) -> List[Dict]:
         column_str = ", ".join(columns)
