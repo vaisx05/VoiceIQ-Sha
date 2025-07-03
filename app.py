@@ -89,13 +89,17 @@ async def get_all_by_dates(req: Dates):
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/logs/all")
-async def get_all_logs(limit: int = Query(20, gt=0), offset: int = Query(0, ge=0)):
-    try:
-        result = await db.get_logs_paginated(limit=limit, offset=offset)
-        return {"data": result, "limit": limit, "offset": offset}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+async def get_all_logs(limit: int = Query(30, gt=0), offset: int = Query(0, ge=0)):
+    data = db.get_logs_paginated(limit=limit, offset=offset)
+    total = db.get_logs_count()
+    return {
+        "data": data,
+        "limit": limit,
+        "offset": offset,
+        "total": total
+    }
 
 @app.get("/logs/{id}")
 async def get_all_by_id(id: str):  # or `id: str` depending on your data type
