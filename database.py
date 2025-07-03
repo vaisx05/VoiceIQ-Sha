@@ -20,12 +20,19 @@ class DatabaseHandler:
     async def get_log(self, id: str) -> List[Dict]:
         response = self.client.table(self.table).select("*").eq("id",id).order("created_at", desc=True).execute()
         return response.data or []
-    
+    # get count
+    def get_logs_count(self):
+        response = self.client.table(self.table).select("id", count="exact").execute()
+        return response.count or 0
+
     # Get all logs with pagination
-    async def get_logs_paginated(self, limit: int, offset: int):
-        query = f"SELECT * FROM call_logs ORDER BY created_at DESC LIMIT {limit} OFFSET {offset}"
-        result = await self.fetch_all(query)
-        return result
+    def get_logs_paginated(self, limit: int, offset: int):
+        response = self.client.table(self.table) \
+            .select("*") \
+            .order("created_at", desc=True) \
+            .range(offset, offset + limit - 1) \
+            .execute()
+        return response.data or []
 
     
     # Get specific columns, limited rows
