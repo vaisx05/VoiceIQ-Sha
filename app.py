@@ -90,6 +90,7 @@ async def get_all_by_dates(req: Dates):
 #         raise HTTPException(status_code=500, detail=str(e))
 
 
+
 @app.get("/logs/all")
 async def get_all_logs(limit: int = Query(30, gt=0), offset: int = Query(0, ge=0)):
     data = db.get_logs_paginated(limit=limit, offset=offset)
