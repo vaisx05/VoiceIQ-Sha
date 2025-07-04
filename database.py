@@ -28,7 +28,7 @@ class DatabaseHandler:
     # Get all logs with pagination
     def get_logs_paginated(self, limit: int, offset: int):
         response = self.client.table(self.table) \
-            .select("*") \
+            .select("id,call_type,call_date,caller_name,toll_free_did,customer_number,report_generated, status") \
             .order("created_at", desc=True) \
             .range(offset, offset + limit - 1) \
             .execute()
