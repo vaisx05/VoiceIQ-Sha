@@ -56,10 +56,8 @@ async def process_log(filename: str) -> str:
         "call_start_time": metadata["call_start_time"],
         "call_id": metadata["call_id"]
     }
-
-    response = await db.create_call_log(data=payload)
-
-    return response.get("id")
+    
+    return payload
 
 @logfire.instrument("chat")
 async def chat(user_prompt: str, uuid : UUID) -> str:
