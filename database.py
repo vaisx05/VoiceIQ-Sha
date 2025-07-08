@@ -14,7 +14,7 @@ class DatabaseHandler:
 
     # Get all columns, limited rows
     async def get_all_logs(self) -> List[Dict]:
-        response = self.client.table(self.table).select("id,call_type,call_date,caller_name,toll_free_did,customer_number,report_generated, status").order("created_at", desc=True).execute()
+        response = self.client.table(self.table).select("id,call_type,call_date,caller_name,toll_free_did,customer_number,report_generated, status, filename").order("created_at", desc=True).execute()
         return response.data or []
     
     async def get_log(self, id: str) -> List[Dict]:
@@ -28,7 +28,7 @@ class DatabaseHandler:
     # Get all logs with pagination
     def get_logs_paginated(self, limit: int, offset: int):
         response = self.client.table(self.table) \
-            .select("id,call_type,call_date,caller_name,toll_free_did,customer_number,report_generated, status") \
+            .select("id,call_type,call_date,caller_name,toll_free_did,customer_number,report_generated, status,filename") \
             .order("created_at", desc=True) \
             .range(offset, offset + limit - 1) \
             .execute()
