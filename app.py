@@ -19,6 +19,7 @@ import boto3
 from transcription import TranscriptionService
 import logfire
 from settings import Settings
+from typing import Optional, Dict, Any
 
 settings = Settings()
 
@@ -73,6 +74,12 @@ class VoiceChatRequest(BaseModel):
     file: UploadFile = File(...)
     uuid: UUID
 
+# search elements in database
+class SearchRequest(BaseModel):
+    filters: Optional[Dict[str, str]] = None 
+    limit: int = 20
+    offset: int = 0
+
 @app.post("/logs/date")
 async def get_all_by_dates(req: Dates):
     try:
@@ -88,8 +95,6 @@ async def get_all_by_dates(req: Dates):
 #         return {"data": result}
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=str(e))
-
-
 
 @app.get("/logs/all")
 async def get_all_logs(limit: int = Query(30, gt=0), offset: int = Query(0, ge=0)):
@@ -185,6 +190,47 @@ async def process_and_update_log(filename: str, log_id: str):
     update_data = {**payload, "status": "complete"}
     await db.update_call_log(log_id, update_data)
 
+@app.post("/logs/datefilter")
+async def filter_logs_by_date(req: Dict[str, Any]):
+    try:
+        filters = req.get("datefilter", {})
+        call_date_from = filters.get("call_date_from")
+        call_date_to = filters.get("call_date_to")
+        limit = req.get("limit", 20)
+        offset = req.get("offset", 0)
+
+        # Only select needed columns
+        columns = "id,call_type,call_date,caller_name,toll_free_did,customer_number,report_generated, status, filename"
+        query = db.client.table(db.table).select(columns)
+
+        # Apply date filters
+        if call_date_from:
+            query = query.gte("call_date", call_date_from)
+        if call_date_to:
+            query = query.lte("call_date", call_date_to)
+
+        # Get total count (no pagination)
+        total_query = db.client.table(db.table).select("id", count="exact")
+        if call_date_from:
+            total_query = total_query.gte("call_date", call_date_from)
+        if call_date_to:
+            total_query = total_query.lte("call_date", call_date_to)
+        total_result = total_query.execute()
+        total_count = total_result.count or 0
+
+        # Apply pagination
+        query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
+        result = query.execute()
+
+        return {
+            "data": result.data or [],
+            "limit": limit,
+            "offset": offset,
+            "total": total_count
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))  
+
 @app.post("/chat")
 async def report_chat(ctx : ChatRequest):
     try:
@@ -245,7 +291,6 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
-
 @app.post("/login", response_model=Token)
 async def login(user: UserLogin):
     user_data = await db.get_user_by_email(user.email)
@@ -257,7 +302,6 @@ async def login(user: UserLogin):
 
     token = create_access_token(data={"sub": str(user_data["email"])})
     return {"access_token": token, "token_type": "bearer"}
-
 
 @app.post("/signup")
 async def signup(user: UserLogin):
