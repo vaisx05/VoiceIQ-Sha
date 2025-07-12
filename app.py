@@ -25,8 +25,8 @@ settings = Settings()
 
 s3 = boto3.client(
     "s3",
-    aws_access_key_id=settings.aws_access_key,
-    aws_secret_access_key=settings.aws_secret_access_key,
+    # aws_access_key_id=settings.aws_access_key,
+    # aws_secret_access_key=settings.aws_secret_access_key,
     #region_name="us-east-1"  # Adjust region as needed
 )
 
@@ -87,14 +87,6 @@ async def get_all_by_dates(req: Dates):
         return {"data": call_logs}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-# @app.get("/logs/all")
-# async def get_all_logs():
-#     try:
-#         result = await db.get_all_logs()
-#         return {"data": result}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/logs/all")
 async def get_all_logs(limit: int = Query(30, gt=0), offset: int = Query(0, ge=0)):
@@ -190,6 +182,7 @@ async def process_and_update_log(filename: str, log_id: str):
     update_data = {**payload, "status": "complete"}
     await db.update_call_log(log_id, update_data)
 
+# data filtering by date range
 @app.post("/logs/datefilter")
 async def filter_logs_by_date(req: Dict[str, Any]):
     try:
@@ -219,7 +212,7 @@ async def filter_logs_by_date(req: Dict[str, Any]):
         total_count = total_result.count or 0
 
         # Apply pagination
-        query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
+        query = query.order("created_at", desc=False).range(offset, offset + limit - 1)
         result = query.execute()
 
         return {
@@ -243,34 +236,6 @@ async def search_logs(req: Dict[str, Any]):
         columns = "id,call_date,call_type,caller_name,status,filename,customer_number,toll_free_did"
         query = db.client.table(db.table).select(columns)
 
-        # # Apply filters
-        # if filters.get("call_date"):
-        #     query = query.eq("call_date", filters["call_date"])
-        # if filters.get("call_type"):
-        #     query = query.eq("call_type", filters["call_type"])
-        # if filters.get("caller_name"):
-        #     query = query.ilike("caller_name", f"%{filters['caller_name']}%")
-        # if filters.get("customer_number"):
-        #     query = query.ilike("customer_number", f"%{filters['customer_number']}%")
-        # if filters.get("toll_free_did"):
-        #     query = query.ilike("toll_free_did", f"%{filters['toll_free_did']}%")
-        # if filters.get("status"):
-        #     query = query.ilike("status", f"%{filters['status']}%")
-
-        # # Get total count (no pagination)
-        # total_query = db.client.table(db.table).select("id", count="exact")
-        # if filters.get("call_date"):
-        #     total_query = total_query.eq("call_date", filters["call_date"])
-        # if filters.get("call_type"):
-        #     total_query = total_query.eq("call_type", filters["call_type"])
-        # if filters.get("caller_name"):
-        #     total_query = total_query.ilike("caller_name", f"%{filters['caller_name']}%")
-        # if filters.get("customer_number"):
-        #     total_query = total_query.ilike("customer_number", f"%{filters['customer_number']}%")
-        # if filters.get("toll_free_did"):
-        #     total_query = total_query.ilike("toll_free_did", f"%{filters['toll_free_did']}%")
-        # if filters.get("status"):
-        #     total_query = total_query.ilike("status", f"%{filters['status']}%")
         def apply_filters(query, filters):
             if filters.get("call_date"):
                 query = query.eq("call_date", filters["call_date"])
