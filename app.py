@@ -174,6 +174,61 @@ async def get_all_logs(
         "offset": offset,
         "total": total
     }
+    
+# Search logs with filters and sorting
+@app.post("/logs/searching")
+async def search_logs(req: Dict[str, Any], user=Depends(get_current_user)):
+    try:
+        filters = req.get("filters", {})
+        sort = req.get("sort", {})
+        limit = req.get("limit", 20)
+        offset = req.get("offset", 0)
+
+        columns = "id,call_date,call_type,caller_name,status,filename,customer_number,toll_free_did, organisation_id"
+        query = db.client.table(db.table).select(columns)
+        query = query.eq("organisation_id", user["organisation_id"])  # <-- filter by organisation
+
+        def apply_filters(query, filters):
+            if filters.get("call_date"):
+                query = query.eq("call_date", filters["call_date"])
+            if filters.get("call_type"):
+                query = query.eq("call_type", filters["call_type"])
+            if filters.get("caller_name"):
+                query = query.ilike("caller_name", f"%{filters['caller_name']}%")
+            if filters.get("customer_number"):
+                query = query.ilike("customer_number", f"%{filters['customer_number']}%")
+            if filters.get("toll_free_did"):
+                query = query.ilike("toll_free_did", f"%{filters['toll_free_did']}%")
+            if filters.get("status"):
+                query = query.ilike("status", f"%{filters['status']}%")
+            if filters.get("filename"):
+                query = query.ilike("filename", f"%{filters['filename']}%")  # <-- Add this line
+            return query
+
+
+        query = apply_filters(query, filters)
+
+        total_query = db.client.table(db.table).select("id", count="exact")
+        total_query = total_query.eq("organisation_id", user["organisation_id"])  # <-- filter by organisation
+        total_query = apply_filters(total_query, filters)
+        total_result = total_query.execute()
+        total_count = total_result.count or 0
+
+        sort_column = sort.get("column", "created_at")
+        sort_direction = sort.get("direction", "desc")
+        query = query.order(sort_column, desc=(sort_direction == "desc"))
+
+        query = query.range(offset, offset + limit - 1)
+        result = query.execute()
+
+        return {
+            "data": result.data or [],
+            "limit": limit,
+            "offset": offset,
+            "total": total_count
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/logs/{id}")
 async def get_all_by_id(id: str):  # or `id: str` depending on your data type
@@ -301,58 +356,6 @@ async def filter_logs_by_date(req: Dict[str, Any], user=Depends(get_current_user
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))  
-
-# Search logs with filters and sorting
-@app.post("/logs/searching")
-async def search_logs(req: Dict[str, Any], user=Depends(get_current_user)):
-    try:
-        filters = req.get("filters", {})
-        sort = req.get("sort", {})
-        limit = req.get("limit", 20)
-        offset = req.get("offset", 0)
-
-        columns = "id,call_date,call_type,caller_name,status,filename,customer_number,toll_free_did, organisation_id"
-        query = db.client.table(db.table).select(columns)
-        query = query.eq("organisation_id", user["organisation_id"])  # <-- filter by organisation
-
-        def apply_filters(query, filters):
-            if filters.get("call_date"):
-                query = query.eq("call_date", filters["call_date"])
-            if filters.get("call_type"):
-                query = query.eq("call_type", filters["call_type"])
-            if filters.get("caller_name"):
-                query = query.ilike("caller_name", f"%{filters['caller_name']}%")
-            if filters.get("customer_number"):
-                query = query.ilike("customer_number", f"%{filters['customer_number']}%")
-            if filters.get("toll_free_did"):
-                query = query.ilike("toll_free_did", f"%{filters['toll_free_did']}%")
-            if filters.get("status"):
-                query = query.ilike("status", f"%{filters['status']}%")
-            return query
-
-        query = apply_filters(query, filters)
-
-        total_query = db.client.table(db.table).select("id", count="exact")
-        total_query = total_query.eq("organisation_id", user["organisation_id"])  # <-- filter by organisation
-        total_query = apply_filters(total_query, filters)
-        total_result = total_query.execute()
-        total_count = total_result.count or 0
-
-        sort_column = sort.get("column", "created_at")
-        sort_direction = sort.get("direction", "desc")
-        query = query.order(sort_column, desc=(sort_direction == "desc"))
-
-        query = query.range(offset, offset + limit - 1)
-        result = query.execute()
-
-        return {
-            "data": result.data or [],
-            "limit": limit,
-            "offset": offset,
-            "total": total_count
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat")
 async def report_chat(
