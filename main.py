@@ -60,14 +60,14 @@ async def process_log(filename: str) -> str:
     return payload
 
 @logfire.instrument("chat")
-async def chat(user_prompt: str, uuid : UUID) -> str:
+async def chat(user_prompt: str, uuid : UUID, organisation_id: str) -> str:
     print(f"[Chat] User prompt: {user_prompt} | Log UUID: {uuid}")
 
     user_id : str = "TestUser"
-    messages = await memory.get_memory(user_id=user_id, limit=20)
+    messages = await memory.get_memory(user_id=user_id, organisation_id=organisation_id, limit=20)
     print(f"[Chat] Retrieved {len(messages)} messages from memory")
 
-    await memory.append_message(user_id=user_id, role="user", content=user_prompt)
+    await memory.append_message(user_id=user_id, organisation_id=organisation_id, role="user", content=user_prompt)
     print(f"[Chat] Appended user message")
 
     transcription = await db.get_transcription(uuid=uuid)
@@ -80,7 +80,7 @@ async def chat(user_prompt: str, uuid : UUID) -> str:
 
     print(f"[Chat] Agent response: {bot_response}")
 
-    await memory.append_message(user_id=user_id, role="bot", content=bot_response)
+    await memory.append_message(user_id=user_id, organisation_id=organisation_id, role="bot", content=bot_response)
     print(f"[Chat] Appended bot response")
 
     return bot_response

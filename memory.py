@@ -25,13 +25,14 @@ class MemoryHandler:
                 messages.append(ModelResponse(parts=[TextPart(content=content)]))
         return messages
 
-    async def get_memory(self, user_id: str, limit: int) -> List[ModelMessage]:
+    async def get_memory(self, user_id: str, organisation_id: str, limit: int) -> List[ModelMessage]:
 
         # Fetch the latest messages from Supabase
         response = (
             self.client.table(self.table)
             .select("role, content")
             .eq("user_id", user_id)
+            .eq("organisation_id", organisation_id)
             .order("timestamp", desc=True)
             .limit(limit)
             .execute()
@@ -42,10 +43,11 @@ class MemoryHandler:
 
         return messages
 
-    async def append_message(self, user_id: str, role: str, content: str) -> None:
-        
+    async def append_message(self, user_id: str, organisation_id: str, role: str, content: str) -> None:
+
         payload = {
                 "user_id": user_id,
+                "organisation_id": organisation_id,
                 "role": role,
                 "content": content,
                 }
