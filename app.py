@@ -26,8 +26,8 @@ settings = Settings()
 
 s3 = boto3.client(
     "s3",
-    # aws_access_key_id=settings.aws_access_key,
-    # aws_secret_access_key=settings.aws_secret_access_key,
+    aws_access_key_id=settings.aws_access_key,
+    aws_secret_access_key=settings.aws_secret_access_key,
     #region_name="us-east-1"  # Adjust region as needed
 )
 
@@ -103,7 +103,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     organisation_id: str
-    role: str  # 'admin' or 'user'
+    role: str  # 'admin' or 'user'  
 
 @app.post("/admin/create_organisation")
 async def create_organisation(
@@ -358,15 +358,20 @@ async def search_logs(req: Dict[str, Any]):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat")
-async def report_chat(ctx : ChatRequest):
+async def report_chat(
+    ctx: ChatRequest,
+    user=Depends(get_current_user)
+):
     try:
-        response = await chat(user_prompt=ctx.user_prompt, uuid=ctx.uuid)
-        
+        response = await chat(
+            user_prompt=ctx.user_prompt,
+            uuid=ctx.uuid,
+            organisation_id=user["organisation_id"]
+        )
         return JSONResponse(content={
             "status": "success",
             "content": response
         })
-    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
