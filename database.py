@@ -6,6 +6,13 @@ class DatabaseHandler:
     def __init__(self, deps):
         self.client : AsyncClient = deps.supabase_client
         self.table : str = "call_logs"
+    
+    # Create Organisation
+    async def create_organisation(self, name: str) -> str:
+        response = self.client.table("organisations").insert({"name": name}).execute()
+        if response.data and len(response.data) > 0:
+            return response.data[0]["id"]
+        raise Exception("Failed to create organisation")
 
     # Create
     async def create_call_log(self, data: Dict[str, Any]) -> Dict:
@@ -20,18 +27,27 @@ class DatabaseHandler:
     async def get_log(self, id: str) -> List[Dict]:
         response = self.client.table(self.table).select("*").eq("id",id).order("created_at", desc=True).execute()
         return response.data or []
+    
     # get count
-    def get_logs_count(self):
-        response = self.client.table(self.table).select("id", count="exact").execute()
-        return response.count or 0
-
-    # Get all logs with pagination
-    def get_logs_paginated(self, limit: int, offset: int):
-        response = self.client.table(self.table) \
-            .select("id,call_type,call_date,caller_name,toll_free_did,customer_number,report_generated, status,filename") \
-            .order("created_at", desc=True) \
-            .range(offset, offset + limit - 1) \
+    async def get_logs_count(self, organisation_id: str):
+        response = (
+            self.client.table(self.table)
+            .select("id", count="exact")
+            .eq("organisation_id", organisation_id)
             .execute()
+        )
+        return response.count or 0
+    
+    # Get all logs with pagination
+    async def get_logs_paginated(self, limit: int, offset: int, organisation_id: str):
+        response = (
+            self.client.table(self.table)
+            .select("id,call_type,call_date,caller_name,toll_free_did,customer_number,report_generated, status,filename")
+            .eq("organisation_id", organisation_id)
+            .order("created_at", desc=True)
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
         return response.data or []
 
     
@@ -82,11 +98,13 @@ class DatabaseHandler:
         response = self.client.table("users").select("*").eq("email", email).execute()
         return response.data[0] if response.data else {}
 
-    async def create_user(self, email: str, hashed_password: str) -> bool:
+    async def create_user(self, email: str, hashed_password: str, organisation_id: str, role: str) -> bool:
         response = self.client.table("users").insert({
             "email": email,
-            "hashed_password": hashed_password
+            "hashed_password": hashed_password,
+            "organisation_id": organisation_id,
+            "role": role
         }).execute()
-        return response.data[0] if response.data else {}
+        return bool(response.data and len(response.data) > 0)
 
         

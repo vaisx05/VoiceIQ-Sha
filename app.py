@@ -1,11 +1,13 @@
 import bcrypt
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Depends
 from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordBearer
 from filename_parser import parse_call_filename
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional, Dict, Any
 from agents import deps
-from auth import create_access_token, verify_password
+from auth import create_access_token, verify_password, SECRET_KEY, ALGORITHM
+from jose import jwt, JWTError
 from database import DatabaseHandler
 from fastapi.middleware.cors import CORSMiddleware
 from main import chat, process_log
@@ -19,7 +21,6 @@ import boto3
 from transcription import TranscriptionService
 import logfire
 from settings import Settings
-from typing import Optional, Dict, Any
 
 settings = Settings()
 
@@ -35,6 +36,20 @@ BUCKET_NAME = "call-logs-audio-files"
 db = DatabaseHandler(deps)
 
 transcription_service = TranscriptionService(bucket_name=BUCKET_NAME)
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        organisation_id = payload.get("organisation_id")
+        role = payload.get("role")
+        if email is None or organisation_id is None or role is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return {"email": email, "organisation_id": organisation_id, "role": role}
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 app = FastAPI()
 
@@ -80,6 +95,58 @@ class SearchRequest(BaseModel):
     limit: int = 20
     offset: int = 0
 
+# --- Models for super admin actions ---
+class OrganisationCreate(BaseModel):
+    name: str
+
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    organisation_id: str
+    role: str  # 'admin' or 'user'
+
+@app.post("/admin/create_organisation")
+async def create_organisation(
+    org: OrganisationCreate,
+    user=Depends(get_current_user)
+):
+    if user["role"] != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    org_id = await db.create_organisation(org.name)
+    return {"msg": "Organisation created", "organisation_id": org_id}
+
+@app.post("/admin/create_user")
+async def create_user(
+    user_req: UserCreate,
+    user=Depends(get_current_user)
+):
+    # Only super_admin or admin can create users
+    if user["role"] not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # super_admin can only create admins for any organisation
+    if user["role"] == "super_admin":
+        if user_req.role != "admin":
+            raise HTTPException(status_code=403, detail="Super admin can only create admins")
+    
+    # admin can only create users for their own organisation, and only with role 'user'
+    if user["role"] == "admin":
+        if user_req.organisation_id != user["organisation_id"]:
+            raise HTTPException(status_code=403, detail="Admins can only create users for their own organisation")
+        if user_req.role != "user":
+            raise HTTPException(status_code=403, detail="Admins can only create users with role 'user'")
+    
+    existing_user = await db.get_user_by_email(user_req.email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    hashed = bcrypt.hashpw(user_req.password.encode(), bcrypt.gensalt()).decode()
+    created = await db.create_user(
+        user_req.email, hashed, user_req.organisation_id, user_req.role
+    )
+    if not created:
+        raise HTTPException(status_code=500, detail="User creation failed")
+    return {"msg": "User created successfully"}
+
 @app.post("/logs/date")
 async def get_all_by_dates(req: Dates):
     try:
@@ -89,9 +156,17 @@ async def get_all_by_dates(req: Dates):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/logs/all")
-async def get_all_logs(limit: int = Query(30, gt=0), offset: int = Query(0, ge=0)):
-    data = db.get_logs_paginated(limit=limit, offset=offset)
-    total = db.get_logs_count()
+async def get_all_logs(
+    limit: int = Query(30, gt=0),
+    offset: int = Query(0, ge=0),
+    user=Depends(get_current_user)
+):
+    data = await db.get_logs_paginated(
+        limit=limit,
+        offset=offset,
+        organisation_id=user["organisation_id"]
+    )
+    total = await db.get_logs_count(organisation_id=user["organisation_id"])
     return {
         "data": data,
         "limit": limit,
@@ -124,7 +199,10 @@ async def get_report(req: ReportRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/create_log")
-async def create_log(file: UploadFile = File(...)):
+async def create_log(
+    file: UploadFile = File(...),
+    user=Depends(get_current_user)
+):
     allowed_exts = (".wav", ".mp3")
     ext = os.path.splitext(file.filename)[-1].lower()
 
@@ -137,10 +215,11 @@ async def create_log(file: UploadFile = File(...)):
     # Parse metadata from filename
     metadata = await parse_call_filename(file.filename)
     
-    # Insert initial row in Supabase with metadata and status
+    # Insert initial row in Supabase with metadata, status, and organisation_id
     initial_payload = {
         **metadata,
         "status": "processing",
+        "organisation_id": user["organisation_id"],  # <-- Add this line
     }   
 
     initial_row = await db.create_call_log(initial_payload)
@@ -340,15 +419,17 @@ class Token(BaseModel):
 
 @app.post("/login", response_model=Token)
 async def login(user: UserLogin):
-    user_data = await db.get_user_by_email(user.email)
-    if not user_data:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    if not verify_password(user.password, user_data["hashed_password"]):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    token = create_access_token(data={"sub": str(user_data["email"])})
-    return {"access_token": token, "token_type": "bearer"}
+        user_data = await db.get_user_by_email(user.email)
+        if not user_data:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        if not verify_password(user.password, user_data["hashed_password"]):
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        token = create_access_token(data={
+            "sub": str(user_data["email"]),
+            "organisation_id": str(user_data["organisation_id"]),
+            "role": str(user_data["role"])
+        })
+        return {"access_token": token, "token_type": "bearer"}
 
 @app.post("/signup")
 async def signup(user: UserLogin):

@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     supabase_url : str = Field(..., validation_alias="SUPABASE_URL")
     supabase_key : str = Field(..., validation_alias="SUPABASE_KEY")
     logfire_write_token : str = Field(..., validation_alias="LOGFIRE_WRITE_TOKEN")
-    # aws_access_key: str = Field(..., validation_alias="AWS_ACCESS_KEY")
-    # aws_secret_access_key: str = Field(..., validation_alias="AWS_SECRET_ACCESS_KEY")
+    aws_access_key: str = Field(..., validation_alias="AWS_ACCESS_KEY")
+    aws_secret_access_key: str = Field(..., validation_alias="AWS_SECRET_ACCESS_KEY")
     # gcp_service_account_json_base64: str = Field(..., validation_alias="GCP_SERVICE_ACCOUNT_JSON_BASE64")
     # gcp_project_id: str = Field(..., validation_alias="GCP_PROJECT_ID")
     
