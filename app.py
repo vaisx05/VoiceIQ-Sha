@@ -11,7 +11,7 @@ from auth import create_access_token, verify_password, SECRET_KEY, ALGORITHM
 from jose import jwt, JWTError
 from database import DatabaseHandler
 from fastapi.middleware.cors import CORSMiddleware
-from main import chat, process_log
+from main import chat, process_log, upload_process_log
 import traceback
 import shutil
 import asyncio
@@ -174,61 +174,6 @@ async def get_all_logs(
         "offset": offset,
         "total": total
     }
-    
-# Search logs with filters and sorting
-@app.post("/logs/searching")
-async def search_logs(req: Dict[str, Any], user=Depends(get_current_user)):
-    try:
-        filters = req.get("filters", {})
-        sort = req.get("sort", {})
-        limit = req.get("limit", 20)
-        offset = req.get("offset", 0)
-
-        columns = "id,call_date,call_type,caller_name,status,filename,customer_number,toll_free_did, organisation_id"
-        query = db.client.table(db.table).select(columns)
-        query = query.eq("organisation_id", user["organisation_id"])  # <-- filter by organisation
-
-        def apply_filters(query, filters):
-            if filters.get("call_date"):
-                query = query.eq("call_date", filters["call_date"])
-            if filters.get("call_type"):
-                query = query.eq("call_type", filters["call_type"])
-            if filters.get("caller_name"):
-                query = query.ilike("caller_name", f"%{filters['caller_name']}%")
-            if filters.get("customer_number"):
-                query = query.ilike("customer_number", f"%{filters['customer_number']}%")
-            if filters.get("toll_free_did"):
-                query = query.ilike("toll_free_did", f"%{filters['toll_free_did']}%")
-            if filters.get("status"):
-                query = query.ilike("status", f"%{filters['status']}%")
-            if filters.get("filename"):
-                query = query.ilike("filename", f"%{filters['filename']}%")  # <-- Add this line
-            return query
-
-
-        query = apply_filters(query, filters)
-
-        total_query = db.client.table(db.table).select("id", count="exact")
-        total_query = total_query.eq("organisation_id", user["organisation_id"])  # <-- filter by organisation
-        total_query = apply_filters(total_query, filters)
-        total_result = total_query.execute()
-        total_count = total_result.count or 0
-
-        sort_column = sort.get("column", "created_at")
-        sort_direction = sort.get("direction", "desc")
-        query = query.order(sort_column, desc=(sort_direction == "desc"))
-
-        query = query.range(offset, offset + limit - 1)
-        result = query.execute()
-
-        return {
-            "data": result.data or [],
-            "limit": limit,
-            "offset": offset,
-            "total": total_count
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/logs/{id}")
 async def get_all_by_id(id: str):  # or `id: str` depending on your data type
@@ -312,10 +257,20 @@ async def create_log(
 
 # Add this function to handle background processing and update
 async def process_and_update_log(filename: str, log_id: str):
-    from main import process_log
+    # from main import process_log
     payload = await process_log(filename)
     update_data = {**payload, "status": "complete"}
     await db.update_call_log(log_id, update_data)
+
+# async def process_and_update_log(filename: str, log_id: str, parser: str = "strict"):
+#     if parser == "upload":
+#         from upload_filename_parser import upload_parse_call_filename
+#         payload = await upload_parse_call_filename(filename)
+#     else:
+#         from filename_parser import parse_call_filename
+#         payload = await parse_call_filename(filename)
+#     update_data = {**payload, "status": "complete"}
+#     await db.update_call_log(log_id, update_data)
 
 # data filtering by date range
 @app.post("/logs/datefilter")
@@ -356,6 +311,58 @@ async def filter_logs_by_date(req: Dict[str, Any], user=Depends(get_current_user
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))  
+
+# Search logs with filters and sorting
+@app.post("/logs/searching")
+async def search_logs(req: Dict[str, Any], user=Depends(get_current_user)):
+    try:
+        filters = req.get("filters", {})
+        sort = req.get("sort", {})
+        limit = req.get("limit", 20)
+        offset = req.get("offset", 0)
+
+        columns = "id,call_date,call_type,caller_name,status,filename,customer_number,toll_free_did, organisation_id"
+        query = db.client.table(db.table).select(columns)
+        query = query.eq("organisation_id", user["organisation_id"])  # <-- filter by organisation
+
+        def apply_filters(query, filters):
+            if filters.get("call_date"):
+                query = query.eq("call_date", filters["call_date"])
+            if filters.get("call_type"):
+                query = query.eq("call_type", filters["call_type"])
+            if filters.get("caller_name"):
+                query = query.ilike("caller_name", f"%{filters['caller_name']}%")
+            if filters.get("customer_number"):
+                query = query.ilike("customer_number", f"%{filters['customer_number']}%")
+            if filters.get("toll_free_did"):
+                query = query.ilike("toll_free_did", f"%{filters['toll_free_did']}%")
+            if filters.get("status"):
+                query = query.ilike("status", f"%{filters['status']}%")
+            return query
+
+        query = apply_filters(query, filters)
+
+        total_query = db.client.table(db.table).select("id", count="exact")
+        total_query = total_query.eq("organisation_id", user["organisation_id"])  # <-- filter by organisation
+        total_query = apply_filters(total_query, filters)
+        total_result = total_query.execute()
+        total_count = total_result.count or 0
+
+        sort_column = sort.get("column", "created_at")
+        sort_direction = sort.get("direction", "desc")
+        query = query.order(sort_column, desc=(sort_direction == "desc"))
+
+        query = query.range(offset, offset + limit - 1)
+        result = query.execute()
+
+        return {
+            "data": result.data or [],
+            "limit": limit,
+            "offset": offset,
+            "total": total_count
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat")
 async def report_chat(
@@ -485,7 +492,7 @@ async def upload_any_file(
             ContentType=file.content_type
         )
 
-        asyncio.create_task(process_and_update_log(filename, log_id))
+        asyncio.create_task(upload_process_and_update_log(filename, log_id, db))
 
         return JSONResponse(content={
             "status": "success",
@@ -496,6 +503,40 @@ async def upload_any_file(
     except Exception as e:
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error")
+    
+
+# Add this function to handle background processing and update
+async def upload_process_and_update_log(filename: str, log_id: str, db):
+    log_list = await db.get_log(log_id)
+    log = log_list[0] if log_list else None
+
+    if log:
+        organisation_id = log["organisation_id"]
+        common_questions = await db.get_common_questions(organisation_id)
+        payload = await upload_process_log(filename, log_id, organisation_id, db)
+        update_data = {**payload, "status": "complete"}
+        await db.update_call_log(log_id, update_data)
+    else:
+        # handle log not found
+        print(f"Log with id {log_id} not found.")
+        # Optionally, raise an exception or return an error response
+
+@app.get("/get_answers/{call_id}")
+async def get_answers(call_id: str, user=Depends(get_current_user)):
+    callresults = await db.get_answers_by_callid(call_id=call_id, organisation_id=user["organisation_id"])
+    return callresults
+
+@app.get("/get_all_questions")
+async def get_all_questions(user=Depends(get_current_user)):
+    questions = await db.get_all_questions(organisation_id=user["organisation_id"])
+    return questions
+
+@app.put("/update_question/{id}")
+async def update_question(id: str, question_text: str, is_active: bool, user=Depends(get_current_user)):
+    question_updated = await db.update_question_text(id, question_text, is_active, organisation_id=user["organisation_id"])
+    if not question_updated:
+        raise HTTPException(status_code=404, detail="Question not found")
+    return {"message": "Question updated successfully"}
 
 
 if __name__ == "__main__":

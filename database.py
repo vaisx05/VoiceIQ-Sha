@@ -106,5 +106,64 @@ class DatabaseHandler:
             "role": role
         }).execute()
         return bool(response.data and len(response.data) > 0)
+    
+    # Get common questions for an organisation
+    async def get_common_questions(self, organisation_id: str) -> List[Dict[str, Any]]:
+        response = (
+            self.client.table("questions")
+            .select("*")
+            .eq("is_common", True)
+            .eq("organisation_id", organisation_id)
+            .execute()
+        )
+        return response.data if response.data else []
 
-        
+    # Create answer (ensure data contains organisation_id)
+    async def create_answer(self, data: Dict[str, Any]) -> Dict:
+        print("Completed")
+        response = self.client.table("answers").insert(data).execute()
+        return response.data[0] if response.data else {}
+
+    # Get answers by callid for an organisation
+    async def get_answers_by_callid(self, call_id: str, organisation_id: str) -> List[Dict[str, str]]:
+        response = (
+            self.client.table("answers")
+            .select("questions(question_text),answer_text")
+            .eq("call_id", call_id)
+            .eq("organisation_id", organisation_id)
+            .execute()
+        )
+        if not response.data:
+            return []
+        return [
+            {
+                "question_text": item["questions"]["question_text"],
+                "answer_text": item["answer_text"]
+            }
+            for item in response.data
+        ]
+
+    # Get all questions for an organisation
+    async def get_all_questions(self, organisation_id: str) -> List[Dict[str, Any]]:
+        response = (
+            self.client.table("questions")
+            .select("id", "question_text", "is_active")
+            .eq("organisation_id", organisation_id)
+            .execute()
+        )
+        return response.data if response.data else []
+
+    # Update question text for an organisation
+    async def update_question_text(self, id: str, question_text: str, is_active: bool, organisation_id: str) -> bool:
+        response = (
+            self.client
+            .table("questions")
+            .update({
+                "question_text": question_text,
+                "is_active": is_active        
+            })
+            .eq("id", id)
+            .eq("organisation_id", organisation_id)
+            .execute()
+        )
+        return bool(response.data)  # True if row was updated, False otherwise
