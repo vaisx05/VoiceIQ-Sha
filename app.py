@@ -405,10 +405,13 @@ async def report_voice_chat(file: UploadFile = File(...), uuid: UUID = Form(...)
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-@app.post("/delete_log")
+
+@app.delete("/delete_log")
 async def delete_log_by_id(id: str):  # or `id: str` depending on your data type
     try:
+        # Delete all answers for this call log first
+        await db.delete_answers_by_callid(id)
+        # Now delete the call log
         result = await db.delete_call_log(id=id)
         return {"status": "successfully deleted"}
     except Exception as e:

@@ -128,9 +128,9 @@ class DatabaseHandler:
     async def get_answers_by_callid(self, call_id: str, organisation_id: str) -> List[Dict[str, str]]:
         response = (
             self.client.table("answers")
-            .select("questions(question_text),answer_text")
+            .select("questions(question_text),answer_text,call_logs(organisation_id)")
             .eq("call_id", call_id)
-            .eq("organisation_id", organisation_id)
+            .eq("call_logs.organisation_id", organisation_id)
             .execute()
         )
         if not response.data:
@@ -141,7 +141,12 @@ class DatabaseHandler:
                 "answer_text": item["answer_text"]
             }
             for item in response.data
+            if item.get("call_logs", {}).get("organisation_id") == organisation_id
         ]
+    
+    # Delete all answers for a call log
+    async def delete_answers_by_callid(self, call_id: str):
+        self.client.table("answers").delete().eq("call_id", call_id).execute()
 
     # Get all questions for an organisation
     async def get_all_questions(self, organisation_id: str) -> List[Dict[str, Any]]:

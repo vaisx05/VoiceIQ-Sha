@@ -125,9 +125,33 @@ async def upload_process_log(
    """
     question_answer_response = await questionary_agent.run(user_prompt=combined_prompt)
 
-    for item in question_answer_response.output.answers:
+    # for item in question_answer_response.output.answers:
+    #     matching_question = next(
+    #         (q for q in common_questions if q["question_text"] == item.question_text),
+    #         None
+    #     )
+    #     if not matching_question:
+    #         continue
+    #     print(f"Call id:{log_id}")
+    #     answer_payload = {
+    #         "call_id": log_id,
+    #         "question_id": matching_question["id"],
+    #         "answer_text": item.answer_text
+    #     }
+    #     await db.create_answer(answer_payload)
+
+    try:
+        output = question_answer_response.output.strip()
+        output = re.sub(r"^```(?:json)?|```$", "", output, flags=re.MULTILINE).strip()
+        answers_data = json.loads(output)
+        answers = answers_data["answers"]
+    except Exception as e:
+        print("Failed to parse answers:", question_answer_response.output)
+        answers = []
+
+    for item in answers:
         matching_question = next(
-            (q for q in common_questions if q["question_text"] == item.question_text),
+            (q for q in common_questions if q["question_text"] == item["question_text"]),
             None
         )
         if not matching_question:
@@ -136,7 +160,7 @@ async def upload_process_log(
         answer_payload = {
             "call_id": log_id,
             "question_id": matching_question["id"],
-            "answer_text": item.answer_text
+            "answer_text": item["answer_text"]
         }
         await db.create_answer(answer_payload)
 
