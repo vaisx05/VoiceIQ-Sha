@@ -524,6 +524,12 @@ async def upload_process_and_update_log(filename: str, log_id: str, db):
         print(f"Log with id {log_id} not found.")
         # Optionally, raise an exception or return an error response
 
+
+# Pydantic model
+class Question(BaseModel):
+    question_text: str
+    is_active: Optional[bool] = True
+
 @app.get("/get_answers/{call_id}")
 async def get_answers(call_id: str, user=Depends(get_current_user)):
     callresults = await db.get_answers_by_callid(call_id=call_id, organisation_id=user["organisation_id"])
@@ -540,6 +546,22 @@ async def update_question(id: str, question_text: str, is_active: bool, user=Dep
     if not question_updated:
         raise HTTPException(status_code=404, detail="Question not found")
     return {"message": "Question updated successfully"}
+
+@app.delete("/delete_question/{id}")
+async def delete_question(id:str, user = Depends(get_current_user)):
+    question_deleted = await db.delete_question(id, organisation_id=user["organisation_id"])
+    if not question_deleted:
+        raise HTTPException(status_code=404, detail="Question not found")
+    return {"message": "Question deleted successfully"}
+
+@app.post("/add_question")
+async def add_question(question: Question, user=Depends(get_current_user)):
+    question_added = await db.add_question(
+        question_text=question.question_text,
+        organisation_id=user["organisation_id"],
+         is_active=question.is_active
+    )
+    return {"success": question_added}
 
 
 if __name__ == "__main__":

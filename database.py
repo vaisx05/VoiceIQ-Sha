@@ -172,3 +172,29 @@ class DatabaseHandler:
             .execute()
         )
         return bool(response.data)  # True if row was updated, False otherwise
+    
+    # Delete question from an organisation
+    async def delete_question(self,id:str,organisation_id: str) -> bool:
+        response = (self.client
+        .table("questions")
+        .delete()
+        .eq("id",id)
+        .eq("organisation_id",organisation_id)
+        .execute()
+        )
+        return bool (response.data)
+    
+    # Add question in an organization
+    async def add_question(self,question_text:str,organisation_id: str,is_active:bool) -> bool:
+        response = (self.client
+        .table("questions")
+        .insert(
+            {
+                "question_text":question_text,
+                "organisation_id":organisation_id,
+                "is_active":is_active
+            }
+        )
+        .execute()
+        )
+        return bool (response.data)
