@@ -8,6 +8,7 @@ from supabase import Client, create_client
 import groq
 import logfire
 from settings import Settings
+from typing import List
 
 settings = Settings()
 logfire.configure(token=settings.logfire_write_token)
@@ -41,7 +42,14 @@ class Form(BaseModel):
     caller_name: str = Field(description="The full name of the caller making the request if given, else return 'null'")
     request_type: str = Field(description="The type of request being made out of the list: [technical support, billing, new connection]")
     issue_summary: str = Field(description="Detailed description of 50 lines of the issue being reported by the caller")
-    caller_sentiment: str = Field(description="The emotion of the customer to be given in one word out of the list: [happy, sad, angry, frustrated]")
+    caller_sentiment: str = Field(description="Describe how the customer feels during the call with the agent, excluding the issue they reported. Choose one word from the list: [happy, sad, angry, frustrated]")
+    key_points: List[str] = Field(
+    description=(
+        "Extract 3-5 meaningful key points from the issue_summary above. "
+        "Each point should be a short, complete sentence clearly describing a specific customer concern or agent action. "
+        "Avoid generic or duplicate points. Return this as a list of strings."
+    )
+)
 
 class Questionary(BaseModel):
     product_sold: str = Field(description="What did the agent sell out of the list: [TV, Wireless Connection, Internet]")

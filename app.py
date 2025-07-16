@@ -529,6 +529,7 @@ async def upload_process_and_update_log(filename: str, log_id: str, db):
 class Question(BaseModel):
     question_text: str
     is_active: Optional[bool] = True
+    is_common: Optional[bool] = True  
 
 @app.get("/get_answers/{call_id}")
 async def get_answers(call_id: str, user=Depends(get_current_user)):
@@ -555,11 +556,13 @@ async def delete_question(id:str, user = Depends(get_current_user)):
     return {"message": "Question deleted successfully"}
 
 @app.post("/add_question")
-async def add_question(question: Question, user=Depends(get_current_user)):
+async def add_question(question: Question, user=Depends(get_current_user), 
+                       is_common: bool = True):
     question_added = await db.add_question(
         question_text=question.question_text,
         organisation_id=user["organisation_id"],
-         is_active=question.is_active
+        is_active=question.is_active,
+        is_common=True
     )
     return {"success": question_added}
 

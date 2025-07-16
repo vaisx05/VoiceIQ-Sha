@@ -60,7 +60,6 @@ async def process_log(filename: str, log_id: str) -> str:
         )
         if not matching_question:
             continue
-        print(f"Call id:{log_id}")
         answer_payload = {
             "call_id": log_id,
             "question_id": matching_question["id"],
@@ -156,7 +155,6 @@ async def upload_process_log(
         )
         if not matching_question:
             continue
-        print(f"Call id:{log_id}")
         answer_payload = {
             "call_id": log_id,
             "question_id": matching_question["id"],

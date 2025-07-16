@@ -185,14 +185,16 @@ class DatabaseHandler:
         return bool (response.data)
     
     # Add question in an organization
-    async def add_question(self,question_text:str,organisation_id: str,is_active:bool) -> bool:
+    async def add_question(self,question_text:str,organisation_id: str,is_active:bool, is_common:bool) -> bool:
         response = (self.client
         .table("questions")
+
         .insert(
             {
                 "question_text":question_text,
                 "organisation_id":organisation_id,
-                "is_active":is_active
+                "is_active":is_active,
+                "is_common": is_common
             }
         )
         .execute()
