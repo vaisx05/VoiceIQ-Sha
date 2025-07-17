@@ -63,9 +63,15 @@ class DatabaseHandler:
         return response.data or []
     
     # Get transcription by uuid
+    # async def get_transcription(self, uuid: str) -> Dict:
+    #     response = self.client.table(self.table).select("transcription").eq("id", uuid).execute()
+    #     return response.data[0] or []
+
     async def get_transcription(self, uuid: str) -> Dict:
         response = self.client.table(self.table).select("transcription").eq("id", uuid).execute()
-        return response.data[0] or []
+        if response.data and len(response.data) > 0:
+            return response.data[0]
+        return {}  # or return None, depending on your usage
     
     async def get_all_by_dates(self, start_date: datetime, end_date: datetime) -> List[Dict]:
         response = (
@@ -185,16 +191,14 @@ class DatabaseHandler:
         return bool (response.data)
     
     # Add question in an organization
-    async def add_question(self,question_text:str,organisation_id: str,is_active:bool, is_common:bool) -> bool:
+    async def add_question(self,question_text:str,organisation_id: str,is_active:bool) -> bool:
         response = (self.client
         .table("questions")
-
         .insert(
             {
                 "question_text":question_text,
                 "organisation_id":organisation_id,
-                "is_active":is_active,
-                "is_common": is_common
+                "is_active":is_active
             }
         )
         .execute()

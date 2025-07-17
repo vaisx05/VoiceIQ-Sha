@@ -4,6 +4,7 @@ from agents import deps, call_log_agent, report_agent, database_agent, chat_agen
 from memory import MemoryHandler
 from database import DatabaseHandler
 from filename_parser import parse_call_filename
+import transcription
 from upload_filename_parser import upload_parse_call_filename
 
 from pydantic_ai.messages import SystemPromptPart, ModelRequest
@@ -60,6 +61,7 @@ async def process_log(filename: str, log_id: str) -> str:
         )
         if not matching_question:
             continue
+        
         answer_payload = {
             "call_id": log_id,
             "question_id": matching_question["id"],
@@ -155,6 +157,7 @@ async def upload_process_log(
         )
         if not matching_question:
             continue
+        print(f"Call id:{log_id}")
         answer_payload = {
             "call_id": log_id,
             "question_id": matching_question["id"],
@@ -194,8 +197,12 @@ async def chat(user_prompt: str, uuid : UUID, organisation_id: str) -> str:
     await memory.append_message(user_id=user_id, organisation_id=organisation_id, role="user", content=user_prompt)
     print(f"[Chat] Appended user message")
 
+    # transcription = await db.get_transcription(uuid=uuid)
+    # print(f"[Chat] Retrieved transcription from DB")
+
     transcription = await db.get_transcription(uuid=uuid)
-    print(f"[Chat] Retrieved transcription from DB")
+    if not transcription or "transcription" not in transcription:
+        raise ValueError("No transcription found for this call log")
 
     messages.append(ModelRequest(parts=[SystemPromptPart(content=transcription["transcription"])]))
 

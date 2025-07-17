@@ -15,8 +15,8 @@ class TranscriptionService:
         self.groq_client = async_groq_client
         self.s3 = boto3.client(
             "s3",
-            aws_access_key_id=settings.aws_access_key,
-            aws_secret_access_key=settings.aws_secret_access_key,
+            # aws_access_key_id=settings.aws_access_key,
+            # aws_secret_access_key=settings.aws_secret_access_key,
             # region_name="us-east-1"  # Adjust region as needed
         )
         self.bucket = bucket_name
