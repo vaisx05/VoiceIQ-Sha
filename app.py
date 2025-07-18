@@ -27,8 +27,8 @@ settings = Settings()
 
 s3 = boto3.client(
     "s3",
-    # aws_access_key_id=settings.aws_access_key,
-    # aws_secret_access_key=settings.aws_secret_access_key,
+    aws_access_key_id=settings.aws_access_key,
+    aws_secret_access_key=settings.aws_secret_access_key,
     #region_name="us-east-1"  # Adjust region as needed
 )
 
@@ -60,7 +60,9 @@ logfire.instrument_fastapi(app=app)
 origins = [
     "http://localhost:3000",  
     "http://127.0.0.1:3000",
-    "https://voiceiqindominuslabs.vercel.app"
+    "https://voiceiqindominuslabs.vercel.app",
+    "https://4dglobal-voiceiqindominuslabs.vercel.app",
+    "https://client-voiceiqindominuslabs.vercel.app"
 ]
 
 app.add_middleware(
@@ -578,6 +580,13 @@ async def update_question(id: str, question_text: str, is_active: bool, user=Dep
     if not question_updated:
         raise HTTPException(status_code=404, detail="Question not found")
     return {"message": "Question updated successfully"}
+
+@app.get("/admin/get_all_organisations")
+async def list_organisations(user=Depends(get_current_user)):
+    if user["role"] != "super_admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    orgs = await db.get_all_organisations()
+    return {"organisations": orgs}
 
 
 if __name__ == "__main__":

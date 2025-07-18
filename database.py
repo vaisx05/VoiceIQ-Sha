@@ -204,3 +204,9 @@ class DatabaseHandler:
         .execute()
         )
         return bool (response.data)
+
+    # Fetch all organisations
+    async def get_all_organisations(self) -> List[Dict]:
+        response = self.client.table("organisations").select("*").execute()
+        return response.data or []
+
